@@ -163,6 +163,68 @@
     .login-error.show {
       display: flex !important;
     }
+    /* Estilos inline críticos para Notação Progressiva e Fita */
+    .badge-notacao {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono, monospace);
+      font-weight: 800;
+      font-size: 0.78rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      line-height: 1;
+    }
+    .notacao-0 {
+      background: rgba(148, 163, 184, 0.15) !important;
+      color: #94a3b8 !important;
+      border: 1px solid rgba(148, 163, 184, 0.3) !important;
+    }
+    .notacao-1d {
+      background: rgba(16, 185, 129, 0.22) !important;
+      color: #34d399 !important;
+      border: 1px solid rgba(16, 185, 129, 0.55) !important;
+    }
+    .notacao-1c {
+      background: rgba(56, 189, 248, 0.22) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.55) !important;
+    }
+    .notacao-1m {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 70, 239, 0.3)) !important;
+      color: #fde047 !important;
+      border: 1px solid rgba(245, 158, 11, 0.65) !important;
+    }
+    .badge-dia {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+    }
+    .badge-dia-1 {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .badge-dia-2 {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.45);
+    }
+    .badge-divisor-24h {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.25));
+      color: #e0e7ff;
+      border: 1px dashed rgba(168, 85, 247, 0.6);
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
@@ -669,11 +731,12 @@
                 <th>Acertos no Histórico</th>
                 <th>Taxa da Rodada</th>
                 <th>Taxa Acumulada de Conversão</th>
+                <th>Catálogo Progressivo nos Gales (0 / 1D / 1C / 1M)</th>
                 <th>Avaliação Estratégica</th>
               </tr>
             </thead>
             <tbody id="tabela-maturacao-body">
-              <tr><td colspan="6" style="text-align: center; padding: 1.5rem;">Carregando métricas de maturação...</td></tr>
+              <tr><td colspan="7" style="text-align: center; padding: 1.5rem;">Carregando métricas de maturação...</td></tr>
             </tbody>
           </table>
         </div>

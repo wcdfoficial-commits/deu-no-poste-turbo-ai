@@ -882,6 +882,13 @@ async function carregarFilaApostas() {
           ${amostraNum}
         </div>
 
+        ${aposta.resultado_resumo ? `
+          <div style="background: rgba(16,185,129,0.06); border: 1px dashed rgba(16,185,129,0.3); border-radius: 6px; padding: 0.5rem 0.85rem; font-family: var(--font-mono); font-size: 0.82rem; color: #fff; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="color: var(--accent); font-weight: 700;">🎰 Fita de Gales:</span>
+            <span>${aposta.resultado_resumo}</span>
+          </div>
+        ` : ''}
+
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem;">
           <div style="display: flex; gap: 1.25rem; color: var(--text-muted);">
             <div>Custo/Rodada: <strong style="color: var(--text-main);">R$ ${Number(aposta.custo_por_rodada).toFixed(2)}</strong></div>
@@ -936,6 +943,39 @@ function dispararConferencia(idAposta) {
   const sel = document.getElementById(`select-sorteio-${idAposta}`);
   const idSorteioAlvo = sel && sel.value ? parseInt(sel.value) : null;
   conferirCiclo(idAposta, idSorteioAlvo);
+}
+
+function renderizarFitaRibbon(lista) {
+  if (!lista || lista.length === 0) {
+    return '<span style="color: var(--text-muted); font-size: 0.85rem;">Nenhuma rodada apurada ainda.</span>';
+  }
+  let html = '';
+  lista.forEach((item, i) => {
+    if (item.tipo === "divisor_24h") {
+      html += `
+        <span class="fita-seta">➔</span>
+        <span class="badge-divisor-24h" title="Transição para o próximo dia (Ciclo 24h)">${item.rotulo}</span>
+        <span class="fita-seta">➔</span>
+      `;
+    } else {
+      if (i > 0 && lista[i-1].tipo !== "divisor_24h") {
+        html += `<span class="fita-seta">➔</span>`;
+      }
+      let nClass = "notacao-0";
+      if (item.notacao && item.notacao.includes("M")) nClass = "notacao-1m";
+      else if (item.notacao && item.notacao.includes("C")) nClass = "notacao-1c";
+      else if (item.notacao && item.notacao.includes("D")) nClass = "notacao-1d";
+      else if (item.notacao && item.notacao.includes("G")) nClass = "notacao-1g";
+
+      html += `
+        <div class="fita-item-box" title="${item.gale} (${item.rodada}ª Rodada) - ${item.acertou ? 'Premiado' : 'Sem acerto'}">
+          <span class="fita-item-gale">${item.gale}</span>
+          <span class="badge-notacao ${nClass}">${item.notacao}</span>
+        </div>
+      `;
+    }
+  });
+  return html;
 }
 
 async function conferirCiclo(idAposta, idSorteioAlvo = null) {
@@ -1002,6 +1042,29 @@ async function conferirCiclo(idAposta, idSorteioAlvo = null) {
           </strong>
         </div>
       </div>
+
+      <!-- Fita Progressiva Registrada (Ribbon Visual) -->
+      <div style="margin-top: 1.25rem; background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="font-weight: 800; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎰</span> Registro Progressivo nos Gales (Catálogo de Acertos):
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Auditoria Rodada a Rodada & Ciclo 24h
+          </div>
+        </div>
+        
+        <div class="fita-ribbon-container" style="margin: 0; background: transparent; border: none; padding: 0;">
+          ${renderizarFitaRibbon(data.fita_progressiva_lista)}
+        </div>
+
+        <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; margin-top: 0.85rem; padding-top: 0.65rem; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.8rem; color: var(--text-muted);">
+          <div>Acertos de Milhar: <strong style="color: #fde047;">${data.totais_catalogo ? data.totais_catalogo.milhar_m : 0} (1M)</strong></div>
+          <div>Acertos de Centena: <strong style="color: #38bdf8;">${data.totais_catalogo ? data.totais_catalogo.centena_c : 0} (1C)</strong></div>
+          <div>Acertos de Dezena: <strong style="color: #34d399;">${data.totais_catalogo ? data.totais_catalogo.dezena_d : 0} (1D)</strong></div>
+          <div>Rodadas sem Acerto: <strong style="color: #94a3b8;">${data.totais_catalogo ? data.totais_catalogo.erros_zero : 0} (0)</strong></div>
+        </div>
+      </div>
     `;
 
     if (data.rodadas.length > 0) {
@@ -1013,12 +1076,32 @@ async function conferirCiclo(idAposta, idSorteioAlvo = null) {
           <div class="stepper-timeline">
       `;
 
-      data.rodadas.forEach(r => {
+      data.rodadas.forEach((r, idx) => {
         const isWin = r.acertou;
+        let badgeNotacaoClass = "notacao-0";
+        if (r.notacao && r.notacao.includes("M")) badgeNotacaoClass = "notacao-1m";
+        else if (r.notacao && r.notacao.includes("C")) badgeNotacaoClass = "notacao-1c";
+        else if (r.notacao && r.notacao.includes("D")) badgeNotacaoClass = "notacao-1d";
+        else if (r.notacao && r.notacao.includes("G")) badgeNotacaoClass = "notacao-1g";
+
+        const diaBadgeClass = r.dia_badge && r.dia_badge.includes("Dia 2") ? "badge-dia-2" : "badge-dia-1";
+
+        if (idx === 6) {
+          html += `
+            <div style="text-align: center; margin: 1.25rem 0 0.85rem;">
+              <span class="badge-divisor-24h">🌙 Transição para o Ciclo de 24h (2º Dia • Sorteios 7 a 12 • Abertura PPT 09:20)</span>
+            </div>
+          `;
+        }
+
         html += `
           <div class="step-card ${isWin ? 'step-win' : ''}">
-            <div style="display: flex; align-items: center; gap: 0.85rem;">
-              <span class="gale-pill">${r.gale} (Rodada ${r.rodada})</span>
+            <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span class="gale-pill">${r.gale} (Rodada ${r.rodada})</span>
+                <span class="badge-dia ${diaBadgeClass}">${r.dia_badge}</span>
+                <span class="badge-notacao ${badgeNotacaoClass}">${r.notacao}</span>
+              </div>
               <div>
                 <strong style="color: #fff;">${r.data} (${r.extracao} ${r.horario})</strong>
                 <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem;">
@@ -1173,15 +1256,31 @@ async function carregarEstatisticasCiclos() {
       data.curva_maturacao.forEach(g => {
         const tr = document.createElement("tr");
         const isOptimal = ["G0", "G1", "G2", "G3"].includes(g.gale);
+        const diaClass = g.is_dia_2 ? "badge-dia-2" : "badge-dia-1";
+        
+        let notacaoHtml = `
+          <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            <span class="badge-dia ${diaClass}">${g.dia_badge}</span>
+            <span style="font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; color: #fff;">
+              ${g.notacao_sequencia}
+            </span>
+            ${g.is_repique_24h ? `<span class="badge-repique">⚡ +62% REPIQUE</span>` : ''}
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+            <strong style="color: ${isOptimal ? '#34d399' : 'var(--accent)'};">${g.notacao_desc}</strong> • <em>${g.notacao_detalhe}</em>
+          </div>
+        `;
+
         tr.innerHTML = `
           <td><strong style="color: ${isOptimal ? 'var(--primary)' : 'var(--text-main)'}; font-family: var(--font-mono);">${g.gale}</strong></td>
           <td>${g.rodada}ª Rodada</td>
           <td>${g.acertos.toLocaleString("pt-BR")} acertos</td>
           <td><strong style="color: var(--accent);">${g.taxa_individual}%</strong></td>
           <td><strong style="color: #10b981;">${g.taxa_acumulada}%</strong></td>
+          <td>${notacaoHtml}</td>
           <td>
-            <span style="font-size: 0.78rem; color: ${isOptimal ? '#10b981' : 'var(--text-muted)'};">
-              ${isOptimal ? '⭐ Faixa Ótima de Saída (Alta Assertividade)' : 'Zona de Alavancagem / Risco Aumentado'}
+            <span style="font-size: 0.78rem; color: ${isOptimal ? '#10b981' : (g.is_repique_24h ? '#38bdf8' : 'var(--text-muted)')}; font-weight: ${isOptimal || g.is_repique_24h ? '700' : '400'};">
+              ${g.avaliacao}
             </span>
           </td>
         `;

@@ -315,6 +315,11 @@
           </button>
         </div>
 
+        <!-- Indicador do Piloto Automático -->
+        <div id="header-autopilot-pill" class="header-autopilot-pill" onclick="switchTab('tab-autopilot')" title="Clique para abrir o painel do Piloto Automático">
+          <span class="pulsing-dot"></span> Auto-Pilot: <strong>ATIVO</strong> (<span id="header-proxima-extracao">CORUJA 21:20</span>)
+        </div>
+
         <!-- Botão Sincronização -->
         <button id="btn-sync" class="btn-sync" onclick="sincronizarResultados()" title="Sincronizar novos resultados em tempo real">
           <span id="sync-icon">🔄</span> Sincronizar
@@ -349,6 +354,7 @@
       <button class="tab-btn" onclick="switchTab('tab-resultados')">📊 Resultados & Filtros</button>
       <button class="tab-btn" onclick="switchTab('tab-puxadas')">🔄 Radar de Puxadas Interativo</button>
       <button class="tab-btn" onclick="switchTab('tab-conferidor')">🎫 Conferidor de Bilhetes</button>
+      <button class="tab-btn" onclick="switchTab('tab-autopilot')">🤖 Piloto Automático & Assertividade</button>
     </div>
   </div>
 
@@ -737,6 +743,124 @@
             </thead>
             <tbody id="tabela-maturacao-body">
               <tr><td colspan="7" style="text-align: center; padding: 1.5rem;">Carregando métricas de maturação...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================
+         ABA 5: PILOTO AUTOMÁTICO & AUDITORIA DE ASSERTIVIDADE CONTÍNUA
+         ======================================================================== -->
+    <div id="tab-autopilot" class="tab-content" style="display: none;">
+      
+      <!-- Card Superior do Piloto Automático -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span class="pulsing-dot"></span>
+              <span style="font-size: 0.85rem; font-weight: 800; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">Auto-Scheduler em Segundo Plano</span>
+            </div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #fff; margin-top: 0.25rem;">
+              🤖 Piloto Automático & Registro Contínuo de Assertividade
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.86rem; margin-top: 0.35rem; line-height: 1.4;">
+              O sistema monitora automaticamente os resultados do Rio de Janeiro a cada hora, audita as previsões anteriores, registra a taxa de acerto real a longo prazo e calibra os filtros da IA dinamicamente.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn-filter" onclick="executarCicloAutoPilotAgora()" id="btn-force-autopilot">
+              <span>⚡</span> Forçar Varredura Agora
+            </button>
+          </div>
+        </div>
+
+        <!-- Telemetria do Robô -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+          <div class="score-box">
+            <span>Status do Serviço</span>
+            <strong style="color: #10b981;" id="autopilot-status-texto">🟢 ATIVO (Loop Contínuo)</strong>
+          </div>
+          <div class="score-box">
+            <span>Última Varredura</span>
+            <strong style="color: var(--text-main);" id="autopilot-ultima-varredura">--:--:--</strong>
+          </div>
+          <div class="score-box">
+            <span>Próxima Extração Alvo</span>
+            <strong style="color: var(--accent);" id="autopilot-proxima-extracao">CORUJA (21:20)</strong>
+          </div>
+          <div class="score-box">
+            <span>Ciclos de Monitoramento</span>
+            <strong style="color: #fbbf24;" id="autopilot-total-varreduras">0 ciclos</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card do Regime da IA e Calibração Dinâmica -->
+      <div id="container-regime-ia" class="regime-card regime-quente">
+        <!-- Preenchido via JS -->
+      </div>
+
+      <!-- Scorecards de Assertividade a Longo Prazo -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Assertividade Global Real</div>
+          <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin: 0.4rem 0;" id="metric-taxa-global">--%</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Taxa teórica da IA: <strong id="metric-taxa-estimada" style="color: var(--accent);">--%</strong> (Desvio: <span id="metric-desvio" style="color: #38bdf8;">--</span>)
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Assertividade Recente (24h)</div>
+          <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin: 0.4rem 0;" id="metric-taxa-24h">--%</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Amostra móvel das últimas 6 extrações apuradas
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Conversão por Prêmio</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0.4rem 0;">
+            Cabeça: <strong id="metric-taxa-cabeca" style="color: #10b981;">--%</strong> | Cercado: <strong id="metric-taxa-cercado" style="color: #fbbf24;">--%</strong>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Total de palpites auditados: <strong id="metric-total-auditados" style="color: #fff;">--</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela do Histórico de Auditoria Rodada a Rodada -->
+      <div class="card">
+        <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.85rem; margin-bottom: 1rem;">
+          <div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">
+              📜 Livro-Razão de Auditoria Contínua (Registro por Hora/Extração)
+            </div>
+            <div style="font-size: 0.84rem; color: var(--text-muted);">
+              Acompanhamento detalhado de cada sugestão gerada pela IA e o resultado oficial apurado no poste.
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Extração Gatilho</th>
+                <th>Extração Alvo</th>
+                <th>Dezenas Previstas</th>
+                <th>Resultado no Poste (Cabeça)</th>
+                <th>Notação / Acerto</th>
+                <th>Status Auditoria</th>
+                <th>Data / Hora Registro</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-auditoria-body">
+              <tr><td colspan="7" style="text-align: center; padding: 2rem;">Carregando histórico de assertividade...</td></tr>
             </tbody>
           </table>
         </div>

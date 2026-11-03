@@ -226,6 +226,11 @@ function switchTab(tabId) {
   const btns = Array.from(document.querySelectorAll(".tab-btn"));
   const clickedBtn = btns.find(b => b.getAttribute("onclick")?.includes(tabId));
   if (clickedBtn) clickedBtn.classList.add("active");
+
+  if (tabId === "tab-autopilot") {
+    carregarStatusAutoPilot();
+    carregarMonitoramentoAssertividade();
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -240,6 +245,9 @@ async function initApp() {
     await carregarResultados(1);
     await carregarFilaApostas();
     await carregarEstatisticasCiclos();
+    await carregarStatusAutoPilot();
+    await carregarMonitoramentoAssertividade();
+    setInterval(carregarStatusAutoPilot, 30000);
   } else {
     if (retryCount < 6) {
       retryCount++;
@@ -1289,6 +1297,168 @@ async function carregarEstatisticasCiclos() {
     }
   } catch (e) {
     console.error("Erro ao carregar estatísticas de ciclos:", e);
+  }
+}
+
+// --------------------------------------------------------------------------
+// PILOTO AUTOMÁTICO & AUDITORIA DE ASSERTIVIDADE DE LONGO PRAZO
+// --------------------------------------------------------------------------
+async function carregarStatusAutoPilot() {
+  try {
+    const res = await fetch("/api/autopilot/status");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const elHeaderProx = document.getElementById("header-proxima-extracao");
+    const elTexto = document.getElementById("autopilot-status-texto");
+    const elUltima = document.getElementById("autopilot-ultima-varredura");
+    const elProx = document.getElementById("autopilot-proxima-extracao");
+    const elTotal = document.getElementById("autopilot-total-varreduras");
+
+    if (elHeaderProx) elHeaderProx.textContent = data.proxima_extracao;
+    if (elTexto) elTexto.textContent = data.status_operacional;
+    if (elUltima) elUltima.textContent = data.ultima_checagem;
+    if (elProx) elProx.textContent = data.proxima_extracao;
+    if (elTotal) elTotal.textContent = `${data.total_varreduras} varreduras`;
+  } catch (e) {
+    console.error("Erro ao carregar status do piloto automático:", e);
+  }
+}
+
+async function carregarMonitoramentoAssertividade() {
+  const containerRegime = document.getElementById("container-regime-ia");
+  const elTaxaGlobal = document.getElementById("metric-taxa-global");
+  const elTaxaEst = document.getElementById("metric-taxa-estimada");
+  const elDesvio = document.getElementById("metric-desvio");
+  const elTaxa24h = document.getElementById("metric-taxa-24h");
+  const elTaxaCabeca = document.getElementById("metric-taxa-cabeca");
+  const elTaxaCercado = document.getElementById("metric-taxa-cercado");
+  const elTotalAudit = document.getElementById("metric-total-auditados");
+  const tbody = document.getElementById("tabela-auditoria-body");
+
+  try {
+    const res = await fetch("/api/assertividade/monitoramento");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const reg = data.regime_ia;
+    const resGeral = data.resumo_geral;
+
+    if (containerRegime && reg) {
+      containerRegime.className = `regime-card ${reg.classe}`;
+      containerRegime.innerHTML = `
+        <div>
+          <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 800; color: ${reg.cor}; letter-spacing: 0.5px;">
+            Diagnóstico de Regime & Calibração Automática
+          </div>
+          <div style="font-size: 1.3rem; font-weight: 800; color: #fff; margin: 0.2rem 0;">
+            ${reg.titulo}
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0.25rem 0 0.5rem; line-height: 1.4;">
+            ${reg.descricao}
+          </p>
+          <div style="font-size: 0.84rem; color: #fff; font-weight: 600;">
+            <span style="color: ${reg.cor}; font-weight: 800;">Ajuste Ativo:</span> ${reg.recomendacao}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Assertividade nas Últimas 24h</div>
+          <div style="font-size: 2.2rem; font-weight: 900; color: ${reg.cor}; line-height: 1;">
+            ${resGeral.taxa_recente_24h}%
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+            vs ${resGeral.taxa_estimada_media}% nominal
+          </div>
+        </div>
+      `;
+    }
+
+    const desvioVal = (resGeral.taxa_real_global - resGeral.taxa_estimada_media).toFixed(1);
+    const desvioStr = desvioVal >= 0 ? `+${desvioVal}% (Convergência Alta)` : `${desvioVal}%`;
+
+    if (elTaxaGlobal) elTaxaGlobal.textContent = `${resGeral.taxa_real_global}%`;
+    if (elTaxaEst) elTaxaEst.textContent = `${resGeral.taxa_estimada_media}%`;
+    if (elDesvio) elDesvio.textContent = desvioStr;
+    if (elTaxa24h) elTaxa24h.textContent = `${resGeral.taxa_recente_24h}%`;
+    if (elTaxaCabeca) elTaxaCabeca.textContent = `${resGeral.taxa_real_cabeca}%`;
+    if (elTaxaCercado) elTaxaCercado.textContent = `${resGeral.taxa_real_cercado}%`;
+    if (elTotalAudit) elTotalAudit.textContent = `${resGeral.total_auditados} extrações`;
+
+    if (tbody && data.historico_auditorias) {
+      tbody.innerHTML = "";
+      data.historico_auditorias.forEach(h => {
+        const tr = document.createElement("tr");
+        const isWin = h.status_auditoria === "CONFERIDO_PREMIADO";
+        
+        let notacaoClass = "notacao-0";
+        if (h.notacao_rodada && h.notacao_rodada.includes("M")) notacaoClass = "notacao-1m";
+        else if (h.notacao_rodada && h.notacao_rodada.includes("C")) notacaoClass = "notacao-1c";
+        else if (h.notacao_rodada && h.notacao_rodada.includes("D")) notacaoClass = "notacao-1d";
+
+        const dezenasPrev = h.dezenas_sugeridas ? h.dezenas_sugeridas.slice(0, 5).join(", ") : "--";
+
+        tr.innerHTML = `
+          <td>
+            <strong style="color: #fff;">${h.data_gatilho}</strong>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">${h.extracao_gatilho} ${h.horario_gatilho || ''} (${h.bicho_gatilho || ''})</div>
+          </td>
+          <td>
+            <strong style="color: var(--accent);">${h.extracao_apuracao || 'Pendente'}</strong>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">${h.data_apuracao || ''} ${h.horario_apuracao || ''}</div>
+          </td>
+          <td>
+            <span style="font-family: var(--font-mono); color: #fff; font-size: 0.85rem; font-weight: 700;">${dezenasPrev}</span>
+          </td>
+          <td>
+            ${h.apurado 
+              ? `<span style="font-family: var(--font-mono); font-weight: 800; color: #fff;">${h.milhar_apurado}</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(${h.bicho_apurado})</span>` 
+              : `<span style="color: var(--text-muted);">Aguardando apuração...</span>`}
+          </td>
+          <td>
+            <span class="badge-notacao ${notacaoClass}">${h.notacao_rodada}</span>
+            ${h.detalhes_acertos && h.detalhes_acertos.length > 0 ? `
+              <div style="font-size: 0.72rem; color: #34d399; margin-top: 0.2rem;">${h.detalhes_acertos[0]}</div>
+            ` : ''}
+          </td>
+          <td>
+            <span class="${isWin ? 'badge-status-premiado' : (h.apurado ? 'badge-status-encerrado' : 'badge-status-andamento')}">
+              ${isWin ? '🏆 PREMIADO' : (h.apurado ? '0 (SEM ACERTO)' : '⏳ AGUARDANDO')}
+            </span>
+          </td>
+          <td style="font-size: 0.8rem; color: var(--text-muted);">
+            ${h.criado_em}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  } catch (e) {
+    console.error("Erro ao carregar monitoramento de assertividade:", e);
+  }
+}
+
+async function executarCicloAutoPilotAgora() {
+  const btn = document.getElementById("btn-force-autopilot");
+  if (btn) btn.disabled = true;
+  showToast("Executando varredura e auditoria automática agora...");
+
+  try {
+    const res = await fetch("/api/autopilot/executar", { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`Varredura concluída: ${data.novos_registros} novos registros. ${data.auditorias_processadas} auditorias.`);
+      await carregarStatus();
+      await carregarStatusAutoPilot();
+      await carregarMonitoramentoAssertividade();
+      await carregarPredicoes();
+      await carregarFilaApostas();
+    } else {
+      showToast("Falha ao executar ciclo do piloto automático.", false);
+    }
+  } catch (e) {
+    showToast("Erro de comunicação.", false);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 

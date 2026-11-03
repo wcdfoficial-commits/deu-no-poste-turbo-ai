@@ -9,12 +9,18 @@ import os
 from database import (
     get_stats, get_latest_draw, query_results, BICHO_INFO, get_connection,
     adicionar_aposta_fila, listar_fila_apostas, remover_aposta_fila,
-    obter_sorteios_posteriores, conferir_aposta_ciclo, obter_estatisticas_ciclos
+    obter_sorteios_posteriores, conferir_aposta_ciclo, obter_estatisticas_ciclos,
+    obter_metricas_assertividade_longo_prazo
 )
 from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
+from auto_pilot import auto_pilot
 
 app = FastAPI(title="DEU NO POSTE TURBO AI", version="2.0")
+
+@app.on_event("startup")
+def startup_event():
+    auto_pilot.start()
 
 class NoCacheMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -237,6 +243,18 @@ def api_conferir_ciclo(id_aposta: int, req: Optional[FilaConferirRequest] = None
 @app.get("/api/ciclos/estatisticas")
 def api_estatisticas_ciclos():
     return obter_estatisticas_ciclos()
+
+@app.get("/api/autopilot/status")
+def api_autopilot_status():
+    return auto_pilot.get_status()
+
+@app.post("/api/autopilot/executar")
+def api_autopilot_executar():
+    return auto_pilot.executar_ciclo()
+
+@app.get("/api/assertividade/monitoramento")
+def api_assertividade_monitoramento():
+    return obter_metricas_assertividade_longo_prazo(limite=30)
 
 # Montar arquivos estáticos do frontend
 static_dir = os.path.join(os.path.dirname(__file__), "static")

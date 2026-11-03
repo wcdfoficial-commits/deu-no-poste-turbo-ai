@@ -71,6 +71,9 @@
         </div>
       </div>
 
+      <!-- Container de Gatilhos Especiais Ativos (Gêmeas, Inversão 01-09, Centenas Raras) -->
+      <div id="container-gatilhos-especiais" style="margin-bottom: 1.25rem; display: none;"></div>
+
       <!-- Estratégias Multi-Nível -->
       <div class="grid-cards">
         
@@ -80,7 +83,7 @@
             <div class="card-title">
               <span>🎯</span> Nível 1: DEZENA
             </div>
-            <span class="card-badge badge-green">Risco Mínimo</span>
+            <span class="card-badge badge-green" id="t1-badge">Risco Mínimo</span>
           </div>
           <div class="tier-metric">
             <span>Investimento Total</span>
@@ -90,13 +93,16 @@
             <span>Retorno na Cabeça</span>
             <strong style="color: var(--primary);">R$ 60,00</strong>
           </div>
-          <div class="tier-metric">
-            <span>Taxa Histórica de Acerto</span>
-            <strong id="t1-taxa">27,3% a 33,3%</strong>
+          <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <span>Taxa Dinâmica de Acerto</span>
+              <strong id="t1-taxa" style="color: #38bdf8;">--%</strong>
+            </div>
+            <span id="t1-amostra" style="font-size: 0.72rem; color: var(--text-muted);">Calculando amostragem...</span>
           </div>
           <div class="tier-metric">
-            <span>ROI Estimado</span>
-            <strong style="color: var(--primary);" id="t1-roi">+220% a +300%</strong>
+            <span>ROI Dinâmico Estimado</span>
+            <strong style="color: var(--primary);" id="t1-roi">--%</strong>
           </div>
           <div class="games-box" id="t1-dezenas">Carregando dezenas recomendadas...</div>
           <button class="btn-copy" onclick="copiarTexto('t1-dezenas')">📋 Copiar 5 Dezenas</button>
@@ -118,13 +124,16 @@
             <span>Retorno Centena / Dezena</span>
             <strong style="color: #38bdf8;">R$ 578,00 / R$ 78,00</strong>
           </div>
-          <div class="tier-metric">
-            <span>Taxa de Acerto</span>
-            <strong id="t2-taxa">15,0% a 30,0%</strong>
+          <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <span>Taxa Dinâmica de Acerto</span>
+              <strong id="t2-taxa" style="color: #38bdf8;">--%</strong>
+            </div>
+            <span id="t2-amostra" style="font-size: 0.72rem; color: var(--text-muted);">Calculando amostragem...</span>
           </div>
           <div class="tier-metric">
-            <span>ROI Estimado</span>
-            <strong style="color: #38bdf8;" id="t2-roi">+260% a +767%</strong>
+            <span>ROI Dinâmico Estimado</span>
+            <strong style="color: #38bdf8;" id="t2-roi">--%</strong>
           </div>
           <div class="games-box" id="t2-centenas">Carregando 20 centenas...</div>
           <button class="btn-copy" onclick="copiarTexto('t2-centenas')">📋 Copiar 20 Centenas</button>
@@ -146,13 +155,16 @@
             <span>Retorno na Cabeça</span>
             <strong style="color: #fbbf24;">R$ 4.578,00+</strong>
           </div>
-          <div class="tier-metric">
-            <span>Taxa de Acerto</span>
-            <strong id="t3-taxa">12,5% a 18,8%</strong>
+          <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <span>Taxa Dinâmica de Acerto</span>
+              <strong id="t3-taxa" style="color: #fbbf24;">--%</strong>
+            </div>
+            <span id="t3-amostra" style="font-size: 0.72rem; color: var(--text-muted);">Calculando amostragem...</span>
           </div>
           <div class="tier-metric">
-            <span>ROI Estimado</span>
-            <strong style="color: #fbbf24;" id="t3-roi">+470% a +815%</strong>
+            <span>ROI Dinâmico Estimado</span>
+            <strong style="color: #fbbf24;" id="t3-roi">--%</strong>
           </div>
           <div class="games-box" id="t3-milhares">Carregando fechamento de 100 milhares...</div>
           <button class="btn-copy" onclick="copiarTexto('t3-milhares')">📋 Copiar 100 Milhares</button>

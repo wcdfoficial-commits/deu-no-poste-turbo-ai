@@ -146,13 +146,48 @@ async function carregarPredicoes() {
     if (elDezena) elDezena.textContent = ult.dezena;
     if (elParidade) elParidade.textContent = radar.tendencia_paridade;
     
+    // Gatilhos Especiais Ativos (Gêmeas, Inversão 01-09, Centenas Raras)
+    const containerEspeciais = document.getElementById("container-gatilhos-especiais");
+    if (containerEspeciais) {
+      if (data.gatilhos_especiais_ativos && data.gatilhos_especiais_ativos.length > 0) {
+        containerEspeciais.style.display = "block";
+        containerEspeciais.innerHTML = "";
+        data.gatilhos_especiais_ativos.forEach(g => {
+          const cardG = document.createElement("div");
+          cardG.className = "card";
+          cardG.style.borderColor = g.cor;
+          cardG.style.marginBottom = "0.75rem";
+          cardG.style.background = "linear-gradient(135deg, rgba(20,24,36,0.95), rgba(15,23,42,0.95))";
+          cardG.innerHTML = `
+            <div class="card-header" style="margin-bottom: 0.5rem;">
+              <div class="card-title" style="color: ${g.cor}; font-size: 1.05rem;">
+                <span>⚡</span> ${g.titulo}
+              </div>
+              <span class="card-badge" style="background: rgba(255,255,255,0.08); color: ${g.cor}; border: 1px solid ${g.cor};">${g.badge}</span>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.5rem;">${g.descricao}</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; font-size: 0.88rem;">
+              <div>Taxa Dinâmica de Assertividade: <strong style="color: ${g.cor}; font-size: 0.95rem;">${g.taxa_acerto}</strong></div>
+              <div>Amostragem: <span style="color: var(--text-muted);">${g.amostra}</span></div>
+              <div>Força Estatística: <strong style="color: var(--text-main);">${g.forca}</strong></div>
+            </div>
+          `;
+          containerEspeciais.appendChild(cardG);
+        });
+      } else {
+        containerEspeciais.style.display = "none";
+      }
+    }
+
     // Nível 1
     const elT1Inv = document.getElementById("t1-investimento");
     const elT1Taxa = document.getElementById("t1-taxa");
+    const elT1Amostra = document.getElementById("t1-amostra");
     const elT1Roi = document.getElementById("t1-roi");
     const elT1Dez = document.getElementById("t1-dezenas");
     if (elT1Inv) elT1Inv.textContent = est.nivel_1.investimento;
     if (elT1Taxa) elT1Taxa.textContent = est.nivel_1.taxa_historica;
+    if (elT1Amostra) elT1Amostra.textContent = est.nivel_1.amostra_historica;
     if (elT1Roi) elT1Roi.textContent = est.nivel_1.roi_estimado;
     if (elT1Dez) elT1Dez.textContent = est.nivel_1.dezenas_formatadas;
     fullGamesCache.t1 = est.nivel_1.dezenas_formatadas;
@@ -160,10 +195,12 @@ async function carregarPredicoes() {
     // Nível 2
     const elT2Inv = document.getElementById("t2-investimento");
     const elT2Taxa = document.getElementById("t2-taxa");
+    const elT2Amostra = document.getElementById("t2-amostra");
     const elT2Roi = document.getElementById("t2-roi");
     const elT2Cent = document.getElementById("t2-centenas");
     if (elT2Inv) elT2Inv.textContent = est.nivel_2.investimento;
     if (elT2Taxa) elT2Taxa.textContent = est.nivel_2.taxa_historica;
+    if (elT2Amostra) elT2Amostra.textContent = est.nivel_2.amostra_historica;
     if (elT2Roi) elT2Roi.textContent = est.nivel_2.roi_estimado;
     if (elT2Cent) elT2Cent.textContent = est.nivel_2.centenas.join(", ");
     fullGamesCache.t2 = est.nivel_2.centenas.join("\n");
@@ -171,10 +208,12 @@ async function carregarPredicoes() {
     // Nível 3
     const elT3Inv = document.getElementById("t3-investimento");
     const elT3Taxa = document.getElementById("t3-taxa");
+    const elT3Amostra = document.getElementById("t3-amostra");
     const elT3Roi = document.getElementById("t3-roi");
     const elT3Mil = document.getElementById("t3-milhares");
     if (elT3Inv) elT3Inv.textContent = est.nivel_3.investimento;
     if (elT3Taxa) elT3Taxa.textContent = est.nivel_3.taxa_historica;
+    if (elT3Amostra) elT3Amostra.textContent = est.nivel_3.amostra_historica;
     if (elT3Roi) elT3Roi.textContent = est.nivel_3.roi_estimado;
     if (elT3Mil) elT3Mil.textContent = est.nivel_3.milhares.join(", ");
     fullGamesCache.t3 = est.nivel_3.milhares.join("\n");

@@ -238,6 +238,8 @@ async function initApp() {
     await carregarBichos();
     await carregarPredicoes();
     await carregarResultados(1);
+    await carregarFilaApostas();
+    await carregarEstatisticasCiclos();
   } else {
     if (retryCount < 6) {
       retryCount++;
@@ -761,6 +763,433 @@ function copiarTexto(elemId) {
     }).catch(() => {
       showToast("Falha ao copiar jogos.", false);
     });
+  }
+}
+
+// --------------------------------------------------------------------------
+// FILA DE APOSTAS & CONFERÊNCIA DE CICLOS (G0 A G12)
+// --------------------------------------------------------------------------
+async function enviarParaFila(nivel) {
+  let nome = "";
+  let tipo = "";
+  let apostas = [];
+  let custo = 5.0;
+
+  if (nivel === "t1") {
+    nome = "Nível 1: DEZENA DINÂMICA (5 Dezenas)";
+    tipo = "dezena";
+    custo = 5.0;
+    if (fullGamesCache.t1) {
+      apostas = fullGamesCache.t1.split(/[\s,]+/).map(x => x.trim()).filter(x => x.length > 0);
+    }
+  } else if (nivel === "t2") {
+    nome = "Nível 2: CENTENA COM PROTEÇÃO (20 Centenas)";
+    tipo = "centena";
+    custo = 20.0;
+    if (fullGamesCache.t2) {
+      apostas = fullGamesCache.t2.split(/[\n,;]+/).map(x => x.trim()).filter(x => x.length > 0);
+    }
+  } else if (nivel === "t3") {
+    nome = "Nível 3: MILHAR FECHAMENTO 100 (100 Milhares)";
+    tipo = "milhar";
+    custo = 100.0;
+    if (fullGamesCache.t3) {
+      apostas = fullGamesCache.t3.split(/[\n,;]+/).map(x => x.trim()).filter(x => x.length > 0);
+    }
+  }
+
+  if (apostas.length === 0) {
+    showToast("Aguarde os palpites da IA serem gerados antes de enviar para a fila.", false);
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/fila/adicionar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome_estrategia: nome,
+        tipo: tipo,
+        apostas: apostas,
+        custo_por_rodada: custo
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.status === "success") {
+      showToast("🎯 Jogo enviado para a Fila de Monitoramento (G0 a G12)!");
+      await carregarFilaApostas();
+      switchTab("tab-conferidor");
+    } else {
+      showToast("Falha ao adicionar jogo na fila.", false);
+    }
+  } catch (e) {
+    showToast("Erro ao comunicar com o servidor.", false);
+  }
+}
+
+async function carregarFilaApostas() {
+  const container = document.getElementById("container-fila-apostas");
+  const countEl = document.getElementById("contagem-fila");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/api/fila");
+    if (!res.ok) return;
+    const lista = await res.json();
+
+    if (countEl) countEl.textContent = lista.length;
+
+    if (lista.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📥</div>
+          <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">Nenhum jogo na fila de monitoramento</div>
+          <p style="font-size: 0.88rem;">Clique no botão <strong>"📥 Monitorar (G0-G12)"</strong> em qualquer palpite da IA ou use o botão <strong>"Nova Aposta Manual"</strong> acima.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = "";
+
+    for (const aposta of lista) {
+      const card = document.createElement("div");
+      card.className = "card-fila-item";
+
+      let badgeStatus = `<span class="badge-status-andamento">⏳ ${aposta.status}</span>`;
+      if (aposta.status && aposta.status.includes("PREMIADO")) {
+        badgeStatus = `<span class="badge-status-premiado">🏆 ${aposta.status}</span>`;
+      } else if (aposta.status && aposta.status.includes("ENCERRADO")) {
+        badgeStatus = `<span class="badge-status-encerrado">❌ ${aposta.status}</span>`;
+      }
+
+      const amostraNum = aposta.apostas.slice(0, 16).join(", ") + (aposta.apostas.length > 16 ? ` ... (+${aposta.apostas.length - 16} números)` : "");
+
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+              <span>🎫</span> ${aposta.nome_estrategia}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Sorteio Gatilho: <strong>${aposta.data_gatilho} (${aposta.extracao_gatilho} ${aposta.horario_gatilho || ''})</strong> - ${aposta.bicho_gatilho} | Milhar: ${aposta.milhar_gatilho}
+            </div>
+          </div>
+          <div>${badgeStatus}</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.85rem; font-family: var(--font-mono); font-size: 0.86rem; color: var(--accent); margin-bottom: 0.85rem; word-break: break-all;">
+          ${amostraNum}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem;">
+          <div style="display: flex; gap: 1.25rem; color: var(--text-muted);">
+            <div>Custo/Rodada: <strong style="color: var(--text-main);">R$ ${Number(aposta.custo_por_rodada).toFixed(2)}</strong></div>
+            <div>Sorteios Posteriores Apurados: <strong style="color: var(--accent);">${aposta.sorteios_posteriores_disponiveis} rodadas</strong></div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <select id="select-sorteio-${aposta.id_aposta}" style="padding: 0.45rem 0.65rem; border-radius: 6px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: #fff; font-size: 0.82rem;">
+              <option value="">⚡ Ciclo Completo (G0 a G12)</option>
+            </select>
+
+            <button class="btn-filter" style="padding: 0.45rem 0.95rem; font-size: 0.82rem;" onclick="dispararConferencia(${aposta.id_aposta})">
+              <span>🔍</span> Conferir
+            </button>
+
+            <button class="btn-reset" style="padding: 0.45rem 0.65rem; font-size: 0.82rem; color: var(--danger); border-color: rgba(244,63,94,0.3);" onclick="removerJogoFila(${aposta.id_aposta})" title="Excluir Jogo da Fila">
+              <span>🗑️</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(card);
+      preencherSelectSorteios(aposta.id_aposta);
+    }
+  } catch (e) {
+    console.error("Erro ao carregar fila:", e);
+  }
+}
+
+async function preencherSelectSorteios(idAposta) {
+  const sel = document.getElementById(`select-sorteio-${idAposta}`);
+  if (!sel) return;
+
+  try {
+    const res = await fetch(`/api/fila/${idAposta}/sorteios-posteriores`);
+    if (!res.ok) return;
+    const sorteios = await res.json();
+
+    sorteios.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.id_sorteio;
+      opt.textContent = `${s.gale_tag} (Rodada ${s.rodada_num}) - ${s.data} ${s.extracao} (${s.bicho})`;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    console.error("Erro ao carregar sorteios posteriores:", e);
+  }
+}
+
+function dispararConferencia(idAposta) {
+  const sel = document.getElementById(`select-sorteio-${idAposta}`);
+  const idSorteioAlvo = sel && sel.value ? parseInt(sel.value) : null;
+  conferirCiclo(idAposta, idSorteioAlvo);
+}
+
+async function conferirCiclo(idAposta, idSorteioAlvo = null) {
+  const painel = document.getElementById("painel-auditoria-ciclo");
+  if (!painel) return;
+
+  painel.style.display = "block";
+  painel.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Processando auditoria de ciclo multi-rodadas (G0 a G12)...</div>';
+  painel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  try {
+    const res = await fetch(`/api/fila/${idAposta}/conferir`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_sorteio_alvo: idSorteioAlvo })
+    });
+
+    if (!res.ok) {
+      painel.innerHTML = '<div style="color: var(--danger); padding: 1.5rem;">Falha ao conferir ciclo de aposta.</div>';
+      return;
+    }
+
+    const data = await res.json();
+
+    let bannerClass = data.ciclo_premiado ? "badge-status-premiado" : "badge-status-andamento";
+    let bannerTitle = data.ciclo_premiado
+      ? `🎉 PREMIADO NO ${data.gale_vencedor} (${data.rodadas_necessarias}ª Rodada)!`
+      : (data.total_rodadas_verificadas === 0 ? "⏳ AGUARDANDO NOVAS APURAÇÕES" : `⏳ EM ANDAMENTO - ${data.total_rodadas_verificadas} Rodadas Verificadas`);
+
+    let html = `
+      <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.85rem; margin-bottom: 1rem;">
+        <div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Auditoria de Ciclo & Gestão de Gales</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-top: 0.2rem;">
+            ${data.nome_estrategia}
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            Sorteio Gatilho: <strong>${data.gatilho.data} (${data.gatilho.extracao})</strong> - ${data.gatilho.bicho} (Milhar: ${data.gatilho.milhar})
+          </div>
+        </div>
+        <span class="${bannerClass}" style="font-size: 0.95rem; padding: 0.45rem 0.9rem;">${bannerTitle}</span>
+      </div>
+
+      <!-- Scorecard Financeiro do Ciclo -->
+      <div class="scorecard-ciclo">
+        <div class="score-box">
+          <span>Rodadas Necessárias</span>
+          <strong style="color: ${data.ciclo_premiado ? '#10b981' : '#38bdf8'};">
+            ${data.ciclo_premiado ? `${data.gale_vencedor} (${data.rodadas_necessarias}ª Rodada)` : `${data.total_rodadas_verificadas} Rodadas`}
+          </strong>
+        </div>
+        <div class="score-box">
+          <span>Investimento Total</span>
+          <strong style="color: var(--text-main);">R$ ${Number(data.custo_total_acumulado).toFixed(2)}</strong>
+        </div>
+        <div class="score-box">
+          <span>Prêmio Total Bruto</span>
+          <strong style="color: #fbbf24;">R$ ${Number(data.premio_total_acumulado).toFixed(2)}</strong>
+        </div>
+        <div class="score-box" style="border-color: ${data.saldo_liquido > 0 ? 'rgba(16,185,129,0.4)' : 'rgba(244,63,94,0.4)'};">
+          <span>Saldo Líquido Real</span>
+          <strong style="color: ${data.saldo_liquido > 0 ? '#10b981' : '#f43f5e'};">
+            ${data.saldo_liquido >= 0 ? '+' : ''} R$ ${Number(data.saldo_liquido).toFixed(2)}
+          </strong>
+        </div>
+      </div>
+    `;
+
+    if (data.rodadas.length > 0) {
+      html += `
+        <div style="margin-top: 1.5rem;">
+          <div style="font-weight: 800; font-size: 1rem; margin-bottom: 0.75rem; color: var(--text-main);">
+            📊 Detalhamento Rodada a Rodada (Evolução do Ciclo):
+          </div>
+          <div class="stepper-timeline">
+      `;
+
+      data.rodadas.forEach(r => {
+        const isWin = r.acertou;
+        html += `
+          <div class="step-card ${isWin ? 'step-win' : ''}">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <span class="gale-pill">${r.gale} (Rodada ${r.rodada})</span>
+              <div>
+                <strong style="color: #fff;">${r.data} (${r.extracao} ${r.horario})</strong>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem;">
+                  1º Prêmio: <strong class="milhar-highlight">${r.milhar_cabeca}</strong> (${r.bicho_cabeca})
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: right;">
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                Custo Acumulado: <strong>R$ ${Number(r.custo_acumulado).toFixed(2)}</strong>
+              </div>
+              <div style="margin-top: 0.2rem;">
+                ${isWin 
+                  ? `<strong style="color: #10b981; font-size: 1.05rem;">🎉 PREMIADO (+ R$ ${Number(r.premio_rodada).toFixed(2)})</strong>` 
+                  : `<span style="color: var(--text-muted); font-size: 0.85rem;">Sem acerto nesta rodada</span>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    } else {
+      html += `
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          Ainda não foram apurados sorteios posteriores ao gatilho deste jogo. Clique em <strong>"Sincronizar Próximos Resultados"</strong> para checar novas extrações.
+        </div>
+      `;
+    }
+
+    painel.innerHTML = html;
+    await carregarFilaApostas();
+
+  } catch (e) {
+    painel.innerHTML = '<div style="color: var(--danger); padding: 1.5rem;">Erro de conexão ao conferir aposta.</div>';
+  }
+}
+
+async function removerJogoFila(idAposta) {
+  if (!confirm("Deseja realmente remover este jogo da fila de monitoramento?")) return;
+
+  try {
+    const res = await fetch(`/api/fila/${idAposta}`, { method: "DELETE" });
+    if (res.ok) {
+      showToast("Jogo removido da fila com sucesso.");
+      await carregarFilaApostas();
+      const painel = document.getElementById("painel-auditoria-ciclo");
+      if (painel) painel.style.display = "none";
+    }
+  } catch (e) {
+    showToast("Erro ao excluir jogo.", false);
+  }
+}
+
+async function sincronizarFilaEAtualizar() {
+  const icon = document.getElementById("sync-fila-icon");
+  if (icon) icon.style.animation = "spin 1s linear infinite";
+
+  try {
+    const res = await fetch("/api/sync", { method: "POST" });
+    const data = await res.json();
+    showToast(data.mensagem || "Resultados sincronizados com sucesso!");
+    await carregarStatus();
+    await carregarFilaApostas();
+    await carregarResultados(1);
+    await carregarPredicoes();
+  } catch (e) {
+    showToast("Erro ao sincronizar resultados.", false);
+  } finally {
+    if (icon) icon.style.animation = "none";
+  }
+}
+
+function toggleSecaoNovaAposta() {
+  const secao = document.getElementById("secao-nova-aposta");
+  if (!secao) return;
+  secao.style.display = secao.style.display === "none" ? "block" : "none";
+}
+
+async function salvarNovaApostaManual(event) {
+  if (event) event.preventDefault();
+
+  const nome = document.getElementById("manual-nome")?.value.trim() || "Aposta Manual";
+  const tipo = document.getElementById("manual-tipo")?.value || "dezena";
+  const custo = parseFloat(document.getElementById("manual-custo")?.value || 5.0);
+  const rawText = document.getElementById("manual-apostas")?.value.trim() || "";
+
+  const apostas = rawText.split(/[\n,;\s]+/).map(a => a.trim()).filter(a => a.length > 0);
+
+  if (apostas.length === 0) {
+    showToast("Informe ao menos um número de aposta.", false);
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/fila/adicionar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome_estrategia: nome,
+        tipo: tipo,
+        apostas: apostas,
+        custo_por_rodada: custo
+      })
+    });
+
+    if (res.ok) {
+      showToast("Aposta manual inserida na fila com sucesso!");
+      toggleSecaoNovaAposta();
+      document.getElementById("form-nova-aposta")?.reset();
+      await carregarFilaApostas();
+    } else {
+      showToast("Erro ao salvar aposta.", false);
+    }
+  } catch (e) {
+    showToast("Erro de conexão.", false);
+  }
+}
+
+async function carregarEstatisticasCiclos() {
+  const containerDicas = document.getElementById("container-dicas-filtros-ciclos");
+  const tbody = document.getElementById("tabela-maturacao-body");
+
+  try {
+    const res = await fetch("/api/ciclos/estatisticas");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (containerDicas && data.recomendacoes_filtros) {
+      containerDicas.innerHTML = "";
+      data.recomendacoes_filtros.forEach(r => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.background = "rgba(0,0,0,0.3)";
+        card.style.border = "1px solid var(--border)";
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: #fff;">${r.titulo}</div>
+            <span class="card-badge badge-green">${r.tag}</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.4;">${r.descricao}</p>
+          <div style="font-size: 0.82rem; color: var(--accent); font-weight: 700;">Cobertura Estatística: ${r.taxa_cobertura}</div>
+        `;
+        containerDicas.appendChild(card);
+      });
+    }
+
+    if (tbody && data.curva_maturacao) {
+      tbody.innerHTML = "";
+      data.curva_maturacao.forEach(g => {
+        const tr = document.createElement("tr");
+        const isOptimal = ["G0", "G1", "G2", "G3"].includes(g.gale);
+        tr.innerHTML = `
+          <td><strong style="color: ${isOptimal ? 'var(--primary)' : 'var(--text-main)'}; font-family: var(--font-mono);">${g.gale}</strong></td>
+          <td>${g.rodada}ª Rodada</td>
+          <td>${g.acertos.toLocaleString("pt-BR")} acertos</td>
+          <td><strong style="color: var(--accent);">${g.taxa_individual}%</strong></td>
+          <td><strong style="color: #10b981;">${g.taxa_acumulada}%</strong></td>
+          <td>
+            <span style="font-size: 0.78rem; color: ${isOptimal ? '#10b981' : 'var(--text-muted)'};">
+              ${isOptimal ? '⭐ Faixa Ótima de Saída (Alta Assertividade)' : 'Zona de Alavancagem / Risco Aumentado'}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  } catch (e) {
+    console.error("Erro ao carregar estatísticas de ciclos:", e);
   }
 }
 

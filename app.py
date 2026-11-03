@@ -6,7 +6,11 @@ from pydantic import BaseModel
 from typing import Optional, List
 import os
 
-from database import get_stats, get_latest_draw, query_results, BICHO_INFO
+from database import (
+    get_stats, get_latest_draw, query_results, BICHO_INFO, get_connection,
+    adicionar_aposta_fila, listar_fila_apostas, remover_aposta_fila,
+    obter_sorteios_posteriores, conferir_aposta_ciclo, obter_estatisticas_ciclos
+)
 from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
 
@@ -179,6 +183,60 @@ def api_conferir(req: ConferirRequest):
         "acertos": hits,
         "premio_total": total_premio
     }
+
+class FilaAddRequest(BaseModel):
+    nome_estrategia: str
+    tipo: str
+    apostas: List[str]
+    custo_por_rodada: float
+    id_sorteio_gatilho: Optional[int] = None
+
+class FilaConferirRequest(BaseModel):
+    id_sorteio_alvo: Optional[int] = None
+
+@app.get("/api/fila")
+def api_listar_fila():
+    return listar_fila_apostas()
+
+@app.post("/api/fila/adicionar")
+def api_adicionar_fila(req: FilaAddRequest):
+    return adicionar_aposta_fila(
+        nome_estrategia=req.nome_estrategia,
+        tipo=req.tipo,
+        apostas=req.apostas,
+        custo_por_rodada=req.custo_por_rodada,
+        id_sorteio_gatilho=req.id_sorteio_gatilho
+    )
+
+@app.delete("/api/fila/{id_aposta}")
+def api_remover_fila(id_aposta: int):
+    sucesso = remover_aposta_fila(id_aposta)
+    if not sucesso:
+        raise HTTPException(status_code=404, detail="Aposta não encontrada na fila.")
+    return {"status": "success", "mensagem": "Aposta removida da fila com sucesso."}
+
+@app.get("/api/fila/{id_aposta}/sorteios-posteriores")
+def api_sorteios_posteriores(id_aposta: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id_sorteio_gatilho FROM fila_apostas WHERE id_aposta = ?", (id_aposta,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Aposta não encontrada.")
+    return obter_sorteios_posteriores(row["id_sorteio_gatilho"])
+
+@app.post("/api/fila/{id_aposta}/conferir")
+def api_conferir_ciclo(id_aposta: int, req: Optional[FilaConferirRequest] = None):
+    try:
+        id_alvo = req.id_sorteio_alvo if req else None
+        return conferir_aposta_ciclo(id_aposta, id_sorteio_alvo=id_alvo)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.get("/api/ciclos/estatisticas")
+def api_estatisticas_ciclos():
+    return obter_estatisticas_ciclos()
 
 # Montar arquivos estáticos do frontend
 static_dir = os.path.join(os.path.dirname(__file__), "static")

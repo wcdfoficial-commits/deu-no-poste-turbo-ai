@@ -349,7 +349,10 @@
             <strong style="color: var(--primary);" id="t1-roi">--%</strong>
           </div>
           <div class="games-box" id="t1-dezenas">Carregando dezenas recomendadas...</div>
-          <button class="btn-copy" onclick="copiarTexto('t1-dezenas')">📋 Copiar 5 Dezenas</button>
+          <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+            <button class="btn-copy" onclick="copiarTexto('t1-dezenas')" style="flex: 1;">📋 Copiar</button>
+            <button class="btn-queue" onclick="enviarParaFila('t1')" style="flex: 1.4;" title="Salvar para acompanhamento em ciclos G0 a G12">📥 Monitorar (G0-G12)</button>
+          </div>
         </div>
 
         <!-- Nível 2: Centena -->
@@ -380,7 +383,10 @@
             <strong style="color: var(--accent);" id="t2-roi">--%</strong>
           </div>
           <div class="games-box" id="t2-centenas">Carregando 20 centenas...</div>
-          <button class="btn-copy" onclick="copiarTexto('t2-centenas')">📋 Copiar 20 Centenas</button>
+          <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+            <button class="btn-copy" onclick="copiarTexto('t2-centenas')" style="flex: 1;">📋 Copiar</button>
+            <button class="btn-queue" onclick="enviarParaFila('t2')" style="flex: 1.4;" title="Salvar para acompanhamento em ciclos G0 a G12">📥 Monitorar (G0-G12)</button>
+          </div>
         </div>
 
         <!-- Nível 3: Milhar -->
@@ -411,7 +417,10 @@
             <strong style="color: var(--accent-gold);" id="t3-roi">--%</strong>
           </div>
           <div class="games-box" id="t3-milhares">Carregando fechamento de 100 milhares...</div>
-          <button class="btn-copy" onclick="copiarTexto('t3-milhares')">📋 Copiar 100 Milhares</button>
+          <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+            <button class="btn-copy" onclick="copiarTexto('t3-milhares')" style="flex: 1;">📋 Copiar</button>
+            <button class="btn-queue" onclick="enviarParaFila('t3')" style="flex: 1.4;" title="Salvar para acompanhamento em ciclos G0 a G12">📥 Monitorar (G0-G12)</button>
+          </div>
         </div>
 
       </div>
@@ -551,38 +560,125 @@
       </div>
     </div>
 
-    <!-- ABA 4: CONFERIDOR DE BILHETES -->
+    <!-- ABA 4: CENTRAL DE ACOMPANHAMENTO & CONFERÊNCIA MULTI-RODADAS (G0 A G12) -->
     <div id="tab-conferidor" class="tab-content">
-      <div class="card">
-        <div class="card-title" style="margin-bottom: 0.75rem;">
-          <span>🎫</span> Conferidor Automático de Bilhetes
-        </div>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-          Cole abaixo as suas apostas (uma por linha ou separadas por vírgula). O sistema confere instantaneamente contra a última apuração registrada no banco de dados.
-        </p>
-        
-        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 180px;">
-            <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.35rem; text-transform: uppercase;">Modalidade da Aposta</label>
-            <select id="conf-tipo" style="width: 100%; padding: 0.65rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff;">
-              <option value="milhar">Milhar (ex: 1799)</option>
-              <option value="centena">Centena (ex: 799)</option>
-              <option value="dezena">Dezena (ex: 99)</option>
-              <option value="grupo">Grupo / Bicho (ex: 25 ou Vaca)</option>
-            </select>
+      
+      <!-- Banner Topo com Explicação e Sincronização -->
+      <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div class="card-title" style="color: var(--text-main); font-size: 1.25rem;">
+              <span>🎯</span> Fila de Apostas & Acompanhamento de Ciclos (G0 a G12)
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.35rem; max-width: 850px; line-height: 1.5;">
+              Envie jogos gerados para a <strong>Fila de Acompanhamento</strong>. Conforme novos sorteios ocorrem, o sistema baixa os resultados e calcula exatamente <strong>quantas rodadas foram necessárias para que o jogo desse resultado (G0, G1, G2 ... até G12)</strong>, contabilizando custos acumulados e lucro líquido do ciclo.
+            </p>
           </div>
-        </div>
-
-        <textarea id="conf-apostas" rows="5" placeholder="Cole aqui seus jogos... Exemplo:&#10;1799&#10;0526&#10;1154" style="width: 100%; padding: 0.85rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-family: var(--font-mono); font-size: 0.95rem;"></textarea>
-        
-        <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-          <button class="btn-filter" onclick="conferirApostas()">Conferir Bilhete</button>
-        </div>
-
-        <div id="conf-resultado" style="margin-top: 1.5rem; display: none;">
-          <!-- Resultado da conferência -->
+          <button class="btn-sync" onclick="sincronizarFilaEAtualizar()" style="padding: 0.65rem 1.2rem;">
+            <span id="sync-fila-icon">🔄</span> Sincronizar Próximos Resultados & Atualizar Fila
+          </button>
         </div>
       </div>
+
+      <!-- Container de Jogos Monitorados na Fila -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="margin-bottom: 1rem;">
+          <div class="card-title">
+            <span>📋</span> Jogos Ativos na Fila (<span id="contagem-fila">0</span> jogos)
+          </div>
+          <button class="btn-filter" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="toggleSecaoNovaAposta()">
+            <span>➕</span> Nova Aposta Manual
+          </button>
+        </div>
+        
+        <div id="container-fila-apostas">
+          <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+            Carregando fila de apostas...
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção: Nova Aposta Manual (Colapsável) -->
+      <div id="secao-nova-aposta" class="card" style="margin-bottom: 1.5rem; display: none; border-left: 4px solid var(--primary);">
+        <div class="card-title" style="margin-bottom: 0.75rem;">
+          <span>✍️</span> Inserir Nova Aposta Manual na Fila
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Cadastre qualquer combinação de números para que o sistema monitore as rodadas subsequentes de apuração (G0 a G12).
+        </p>
+
+        <form id="form-nova-aposta" onsubmit="salvarNovaApostaManual(event)">
+          <div class="filter-grid" style="margin-bottom: 1rem;">
+            <div class="filter-group">
+              <label for="manual-nome">Identificação / Nome da Aposta</label>
+              <input type="text" id="manual-nome" placeholder="Ex: Meu Jogo Milhar Fixa" required>
+            </div>
+            <div class="filter-group">
+              <label for="manual-tipo">Modalidade</label>
+              <select id="manual-tipo">
+                <option value="dezena">Dezena (ex: 59, 14)</option>
+                <option value="centena">Centena (ex: 159, 799)</option>
+                <option value="milhar">Milhar (ex: 0159, 1799)</option>
+                <option value="grupo">Grupo / Animal (ex: 15 ou Jacaré)</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="manual-custo">Custo por Rodada (R$)</label>
+              <input type="number" id="manual-custo" step="0.50" value="5.00" required>
+            </div>
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 1rem;">
+            <label for="manual-apostas">Números da Aposta (um por linha ou separados por vírgula)</label>
+            <textarea id="manual-apostas" rows="3" placeholder="Cole os números aqui... Ex: 59, 14, 22" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-family: var(--font-mono); font-size: 0.95rem;" required></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button type="button" class="btn-reset" onclick="toggleSecaoNovaAposta()">Cancelar</button>
+            <button type="submit" class="btn-filter">📥 Salvar na Fila de Monitoramento</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Painel de Auditoria e Resultado do Ciclo Selecionado -->
+      <div id="painel-auditoria-ciclo" class="card" style="margin-bottom: 1.5rem; display: none;">
+        <!-- Preenchido dinamicamente via JS com o resultado detalhado de G0 a G12 -->
+      </div>
+
+      <!-- Inteligência de Ciclos e Sugestões de Filtros -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-title" style="margin-bottom: 0.5rem; color: var(--accent);">
+          <span>📊</span> Curva de Maturação de Ciclos (G0 a G12) & Gestão de Banca
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.86rem; margin-bottom: 1.25rem; line-height: 1.5;">
+          Análise probabilística real baseada em todos os 1.955 sorteios dos últimos 12 meses. Mostra em qual rodada as dezenas e bichos puxados mais costumam ser premiados e o ponto matemático ótimo de Stop-Loss.
+        </p>
+
+        <!-- Cards de Recomendações de Filtros -->
+        <div id="container-dicas-filtros-ciclos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- Tabela da Curva de Maturação -->
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Gale / Ciclo</th>
+                <th>Rodada Efetiva</th>
+                <th>Acertos no Histórico</th>
+                <th>Taxa da Rodada</th>
+                <th>Taxa Acumulada de Conversão</th>
+                <th>Avaliação Estratégica</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-maturacao-body">
+              <tr><td colspan="6" style="text-align: center; padding: 1.5rem;">Carregando métricas de maturação...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
   </main>

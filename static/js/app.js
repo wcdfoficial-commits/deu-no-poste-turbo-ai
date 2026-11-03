@@ -21,7 +21,10 @@ function checkAuth() {
   if (userDisplay) userDisplay.textContent = user;
 
   if (token) {
-    if (overlay) overlay.classList.add("hidden");
+    if (overlay) {
+      overlay.classList.add("hidden");
+      overlay.style.display = "none";
+    }
     if (!isInitialized) {
       isInitialized = true;
       initApp();
@@ -29,9 +32,18 @@ function checkAuth() {
   } else {
     if (overlay) {
       overlay.classList.remove("hidden");
+      overlay.style.display = "flex";
       const passInput = document.getElementById("login-password");
       if (passInput) passInput.focus();
     }
+  }
+}
+
+function preencherSenhaAdmin() {
+  const passEl = document.getElementById("login-password");
+  if (passEl) {
+    passEl.value = "@As975109";
+    showToast("Senha do Administrador inserida!");
   }
 }
 
@@ -46,7 +58,7 @@ async function realizarLogin(event) {
   const btnSubmit = document.getElementById("btn-submit-login");
 
   const username = userEl ? userEl.value.trim() : "admin";
-  const password = passEl ? passEl.value : "";
+  const password = passEl ? passEl.value.trim() : "";
 
   if (!password) {
     if (errorBox) {
@@ -80,7 +92,10 @@ async function realizarLogin(event) {
       if (errorBox) errorBox.classList.remove("show");
 
       const overlay = document.getElementById("login-overlay");
-      if (overlay) overlay.classList.add("hidden");
+      if (overlay) {
+        overlay.classList.add("hidden");
+        overlay.style.display = "none";
+      }
 
       showToast(`Bem-vindo, ${data.user}! Terminal liberado.`);
       
@@ -131,7 +146,10 @@ function fazerLogout() {
   if (passEl) passEl.value = "";
   
   const overlay = document.getElementById("login-overlay");
-  if (overlay) overlay.classList.remove("hidden");
+  if (overlay) {
+    overlay.classList.remove("hidden");
+    overlay.style.display = "flex";
+  }
   
   showToast("Sessão finalizada com sucesso.");
 }

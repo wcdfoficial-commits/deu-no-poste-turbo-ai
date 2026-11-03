@@ -4,8 +4,166 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DEU NO POSTE ANALYTICS PRO - Plataforma Quantitativa</title>
-  <link rel="stylesheet" href="/css/style.css">
+  
+  <!-- CSS Principal com Cache-Buster -->
+  <link rel="stylesheet" href="/css/style.css?v=3.1">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
+  <!-- Estilos Críticos Injetados (Garante Renderização Perfeita Mesmo Sem Cache) -->
+  <style>
+    /* Overlay Crítico de Bloqueio & Login */
+    #login-overlay.login-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(4, 7, 15, 0.94) !important;
+      backdrop-filter: blur(25px) !important;
+      -webkit-backdrop-filter: blur(25px) !important;
+      z-index: 999999 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 1.5rem !important;
+      transition: opacity 0.3s ease, visibility 0.3s ease !important;
+    }
+    #login-overlay.hidden {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .login-card {
+      width: 100% !important;
+      max-width: 440px !important;
+      background: #0d1424 !important;
+      border: 1px solid rgba(56, 189, 248, 0.3) !important;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 40px rgba(16, 185, 129, 0.25) !important;
+      border-radius: 14px !important;
+      padding: 2.25rem 2rem !important;
+      position: relative !important;
+      overflow: hidden !important;
+      color: #f8fafc !important;
+      text-align: left !important;
+    }
+    .login-card::before {
+      content: "" !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      background: linear-gradient(90deg, #10b981, #38bdf8, #f59e0b) !important;
+    }
+    .login-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.4rem !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(56, 189, 248, 0.3) !important;
+      padding: 0.35rem 0.75rem !important;
+      border-radius: 20px !important;
+      font-size: 0.75rem !important;
+      font-weight: 700 !important;
+      color: #38bdf8 !important;
+      text-transform: uppercase !important;
+      margin-bottom: 0.85rem !important;
+    }
+    .login-title {
+      font-size: 1.6rem !important;
+      font-weight: 800 !important;
+      color: #fff !important;
+      margin-bottom: 0.35rem !important;
+    }
+    .login-title span {
+      color: #10b981 !important;
+    }
+    .login-subtitle {
+      font-size: 0.85rem !important;
+      color: #94a3b8 !important;
+      margin-bottom: 1.5rem !important;
+    }
+    .login-form {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 1.15rem !important;
+    }
+    .form-group label {
+      font-size: 0.78rem !important;
+      font-weight: 700 !important;
+      color: #94a3b8 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      display: block !important;
+      margin-bottom: 0.35rem !important;
+    }
+    .form-input {
+      width: 100% !important;
+      background: rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      color: #fff !important;
+      padding: 0.8rem 1rem !important;
+      border-radius: 8px !important;
+      font-size: 0.95rem !important;
+      outline: none !important;
+      box-sizing: border-box !important;
+    }
+    .form-input:focus {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35) !important;
+    }
+    .btn-login {
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      color: #fff !important;
+      border: none !important;
+      padding: 0.85rem !important;
+      border-radius: 8px !important;
+      font-size: 1rem !important;
+      font-weight: 800 !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0.5rem !important;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+      transition: all 0.2s ease !important;
+      margin-top: 0.4rem !important;
+    }
+    .btn-login:hover {
+      filter: brightness(1.1) !important;
+      transform: translateY(-1px) !important;
+    }
+    .btn-quick-fill {
+      background: rgba(56, 189, 248, 0.1) !important;
+      border: 1px dashed rgba(56, 189, 248, 0.4) !important;
+      color: #38bdf8 !important;
+      padding: 0.55rem !important;
+      border-radius: 8px !important;
+      font-size: 0.8rem !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      text-align: center !important;
+      transition: all 0.2s ease !important;
+    }
+    .btn-quick-fill:hover {
+      background: rgba(56, 189, 248, 0.2) !important;
+    }
+    .login-error {
+      display: none;
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid #f43f5e;
+      color: #fda4af;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .login-error.show {
+      display: flex !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -26,19 +184,22 @@
         <div class="form-group">
           <label for="login-username">Operador / Identificação</label>
           <div class="input-wrapper">
-            <span class="input-icon">👤</span>
             <input type="text" id="login-username" class="form-input" value="admin" placeholder="Identificação do operador" autocomplete="username" required>
           </div>
         </div>
 
         <div class="form-group">
           <label for="login-password">Chave de Segurança / Senha</label>
-          <div class="input-wrapper">
-            <span class="input-icon">🔑</span>
-            <input type="password" id="login-password" class="form-input" placeholder="Digite sua senha de acesso" autocomplete="current-password" required>
-            <button type="button" class="btn-toggle-pass" onclick="toggleSenhaVisibilidade()" title="Exibir/Ocultar Senha">👁️</button>
+          <div class="input-wrapper" style="position: relative;">
+            <input type="password" id="login-password" class="form-input" value="@As975109" placeholder="Digite sua senha de acesso" autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-pass" onclick="toggleSenhaVisibilidade()" title="Exibir/Ocultar Senha" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.1rem;">👁️</button>
           </div>
         </div>
+
+        <!-- Atalho Rápido para Admin -->
+        <button type="button" class="btn-quick-fill" onclick="preencherSenhaAdmin()">
+          🔑 Preencher Senha Admin (@As975109)
+        </button>
 
         <div id="login-error-msg" class="login-error">
           <span>⚠️</span>
@@ -434,6 +595,6 @@
     <span id="toast-msg">Mensagem</span>
   </div>
 
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=3.1"></script>
 </body>
 </html>

@@ -72,8 +72,14 @@ def get_latest_draw():
     conn = get_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT MAX(id_sorteio) FROM resultados")
-    max_id = cursor.fetchone()[0]
+    cursor.execute("""
+        SELECT id_sorteio FROM resultados 
+        WHERE is_cabeca = 1 
+        ORDER BY data DESC, horario DESC, id_sorteio DESC 
+        LIMIT 1
+    """)
+    row_max = cursor.fetchone()
+    max_id = row_max[0] if row_max else None
     
     if not max_id:
         conn.close()

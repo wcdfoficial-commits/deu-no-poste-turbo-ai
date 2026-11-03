@@ -143,6 +143,9 @@ def sync_latest_results():
         if not day_rows:
             continue
             
+        # Garantir ordenação cronológica rigorosa das extrações antes de gravar
+        day_rows.sort(key=lambda r: (r.get("ordem_horario", 9), r.get("horario", ""), r.get("premio_num", 0)))
+            
         for row in day_rows:
             # Checar se já existe no banco
             cursor.execute("""

@@ -18,7 +18,7 @@ def get_latest_cabeca():
     cursor.execute("""
         SELECT * FROM resultados 
         WHERE is_cabeca = 1 
-        ORDER BY id_sorteio DESC 
+        ORDER BY data DESC, horario DESC, id_sorteio DESC 
         LIMIT 1
     """)
     row = cursor.fetchone()

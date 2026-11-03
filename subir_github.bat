@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 title DEU NO POSTE TURBO AI - Enviar para o GitHub
 color 0B
 

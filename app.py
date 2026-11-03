@@ -24,6 +24,24 @@ class ConferirRequest(BaseModel):
     apostas: List[str]
     id_sorteio: Optional[int] = None
 
+class LoginRequest(BaseModel):
+    username: Optional[str] = "admin"
+    password: str
+
+ADMIN_PASSWORD = "@As975109"
+
+@app.post("/api/auth/login")
+def api_auth_login(req: LoginRequest):
+    if req.password.strip() == ADMIN_PASSWORD:
+        return {
+            "status": "success",
+            "message": "Autenticado com sucesso",
+            "token": "tok_admin_deu_no_poste_pro_2026",
+            "user": req.username or "Admin",
+            "role": "admin"
+        }
+    raise HTTPException(status_code=401, detail="Senha incorreta! Acesso não autorizado.")
+
 @app.get("/api/status")
 def api_status():
     return get_stats()

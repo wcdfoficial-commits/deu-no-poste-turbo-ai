@@ -1,44 +1,125 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="quant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DEU NO POSTE TURBO AI - Inteligência Preditiva</title>
+  <title>DEU NO POSTE ANALYTICS PRO - Plataforma Quantitativa</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%3E<text y=%2226%22 font-size=%2226%22>🎯</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 </head>
 <body>
 
-  <!-- Top Header -->
+  <!-- ========================================================================
+       TELA DE LOGIN E AUTENTICAÇÃO SEGURA (PORTAL RESTRITO)
+       ======================================================================== -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card" id="login-card">
+      <div class="login-header">
+        <div class="login-badge">
+          <span>🛡️</span> Acesso Restrito ao Terminal
+        </div>
+        <h1 class="login-title">DEU NO POSTE <span>ANALYTICS</span></h1>
+        <p class="login-subtitle">Inteligência Quantitativa & Filtros de Alta Assertividade</p>
+      </div>
+
+      <form class="login-form" id="login-form" onsubmit="realizarLogin(event)">
+        <div class="form-group">
+          <label for="login-username">Operador / Identificação</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="login-username" class="form-input" value="admin" placeholder="Identificação do operador" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">Chave de Segurança / Senha</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="login-password" class="form-input" placeholder="Digite sua senha de acesso" autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-pass" onclick="toggleSenhaVisibilidade()" title="Exibir/Ocultar Senha">👁️</button>
+          </div>
+        </div>
+
+        <div id="login-error-msg" class="login-error">
+          <span>⚠️</span>
+          <span id="login-error-text">Senha incorreta! Acesso não autorizado.</span>
+        </div>
+
+        <button type="submit" id="btn-submit-login" class="btn-login">
+          <span>⚡ Acessar Terminal Analítico</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       HEADER SUPERIOR DA PLATAFORMA
+       ======================================================================== -->
   <header>
     <div class="header-container">
+      
+      <!-- Marca & Logo -->
       <div class="logo-area">
-        <div class="logo-badge">TURBO AI</div>
-        <div class="logo-title">DEU NO POSTE <span>PRO</span></div>
+        <div class="logo-badge">QUANT AI</div>
+        <div class="logo-title-group">
+          <div class="logo-title">DEU NO POSTE <span>ANALYTICS</span></div>
+          <div class="logo-tagline">PLATAFORMA PREDITIVA DE ALTA PRECISÃO</div>
+        </div>
       </div>
+
+      <!-- Ações do Topo -->
       <div class="header-actions">
-        <button id="btn-sync" class="btn-sync" onclick="sincronizarResultados()">
-          <span id="sync-icon">🔄</span> Sincronizar Agora
+        
+        <!-- Seletor dos 3 Temas Profissionais -->
+        <div class="theme-picker" title="Alternar Layout & Estilo">
+          <button class="btn-theme-pill active" data-theme-name="quant" onclick="mudarTema('quant')">
+            <span>💎</span> Quant
+          </button>
+          <button class="btn-theme-pill" data-theme-name="gold" onclick="mudarTema('gold')">
+            <span>👑</span> VIP Gold
+          </button>
+          <button class="btn-theme-pill" data-theme-name="studio" onclick="mudarTema('studio')">
+            <span>🌌</span> Studio
+          </button>
+        </div>
+
+        <!-- Perfil do Usuário Autenticado -->
+        <div class="user-profile-badge" id="user-badge">
+          <span class="user-status-dot"></span>
+          <span class="user-name" id="user-name-display">Admin</span>
+          <button class="btn-logout" onclick="fazerLogout()" title="Sair com segurança">
+            <span>🔒</span> Sair
+          </button>
+        </div>
+
+        <!-- Botão Sincronização -->
+        <button id="btn-sync" class="btn-sync" onclick="sincronizarResultados()" title="Sincronizar novos resultados em tempo real">
+          <span id="sync-icon">🔄</span> Sincronizar
         </button>
+
       </div>
     </div>
   </header>
 
-  <!-- Status Bar -->
+  <!-- ========================================================================
+       HUD DE TELEMETRIA DA BASE (STATUS BAR)
+       ======================================================================== -->
   <div class="status-bar">
     <div class="status-chip">
       <span class="live-indicator"></span>
-      <span>Base Ativa: <strong id="stat-total-sorteios">...</strong> extrações (<strong id="stat-total-premios">...</strong> prêmios)</span>
+      <span>Base Histórica: <strong id="stat-total-sorteios">...</strong> extrações (<strong id="stat-total-premios">...</strong> prêmios)</span>
     </div>
     <div class="status-chip">
-      <span>Período: <strong id="stat-periodo">...</strong></span>
+      <span>Período Ativo: <strong id="stat-periodo">...</strong></span>
     </div>
     <div class="status-chip">
       <span>Última Apuração: <strong id="stat-ultimo">...</strong></span>
     </div>
   </div>
 
-  <!-- Tabs Navigation -->
+  <!-- ========================================================================
+       NAVEGAÇÃO POR ABAS
+       ======================================================================== -->
   <div class="tabs-container">
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('tab-predicoes')">🎯 Palpites & Fechamentos IA</button>
@@ -48,7 +129,9 @@
     </div>
   </div>
 
-  <!-- Main Content -->
+  <!-- ========================================================================
+       CONTEÚDO PRINCIPAL
+       ======================================================================== -->
   <main>
     
     <!-- ABA 1: PALPITES & FECHAMENTOS IA -->
@@ -58,15 +141,15 @@
       <div class="card" style="margin-bottom: 1.25rem; border-left: 4px solid var(--primary);">
         <div class="card-header">
           <div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Gatilho do Último Resultado Apurado</div>
-            <div style="font-size: 1.3rem; font-weight: 800; margin-top: 0.2rem;" id="banner-sorteio-titulo">Carregando...</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gatilho do Último Resultado Apurado</div>
+            <div style="font-size: 1.35rem; font-weight: 800; margin-top: 0.25rem; letter-spacing: -0.3px;" id="banner-sorteio-titulo">Carregando apuração...</div>
           </div>
           <div id="banner-bicho-badge"></div>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.95rem;">
           <div>Milhar na Cabeça: <strong class="milhar-highlight" id="banner-milhar">----</strong></div>
-          <div>Centena: <strong id="banner-centena">---</strong></div>
-          <div>Dezena: <strong id="banner-dezena">--</strong></div>
+          <div>Centena: <strong id="banner-centena" style="color: var(--accent);">---</strong></div>
+          <div>Dezena: <strong id="banner-dezena" style="color: var(--text-main);">--</strong></div>
           <div>Tendência de Paridade: <strong id="banner-paridade" style="color: var(--primary);">---</strong></div>
         </div>
       </div>
@@ -96,9 +179,9 @@
           <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
             <div style="display: flex; justify-content: space-between; width: 100%;">
               <span>Taxa Dinâmica de Acerto</span>
-              <strong id="t1-taxa" style="color: #38bdf8;">--%</strong>
+              <strong id="t1-taxa" style="color: var(--accent);">--%</strong>
             </div>
-            <span id="t1-amostra" style="font-size: 0.72rem; color: var(--text-muted);">Calculando amostragem...</span>
+            <span id="t1-amostra" style="font-size: 0.74rem; color: var(--text-muted);">Calculando amostragem...</span>
           </div>
           <div class="tier-metric">
             <span>ROI Dinâmico Estimado</span>
@@ -122,18 +205,18 @@
           </div>
           <div class="tier-metric">
             <span>Retorno Centena / Dezena</span>
-            <strong style="color: #38bdf8;">R$ 578,00 / R$ 78,00</strong>
+            <strong style="color: var(--accent);">R$ 578,00 / R$ 78,00</strong>
           </div>
           <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
             <div style="display: flex; justify-content: space-between; width: 100%;">
               <span>Taxa Dinâmica de Acerto</span>
-              <strong id="t2-taxa" style="color: #38bdf8;">--%</strong>
+              <strong id="t2-taxa" style="color: var(--accent);">--%</strong>
             </div>
-            <span id="t2-amostra" style="font-size: 0.72rem; color: var(--text-muted);">Calculando amostragem...</span>
+            <span id="t2-amostra" style="font-size: 0.74rem; color: var(--text-muted);">Calculando amostragem...</span>
           </div>
           <div class="tier-metric">
             <span>ROI Dinâmico Estimado</span>
-            <strong style="color: #38bdf8;" id="t2-roi">--%</strong>
+            <strong style="color: var(--accent);" id="t2-roi">--%</strong>
           </div>
           <div class="games-box" id="t2-centenas">Carregando 20 centenas...</div>
           <button class="btn-copy" onclick="copiarTexto('t2-centenas')">📋 Copiar 20 Centenas</button>
@@ -153,18 +236,18 @@
           </div>
           <div class="tier-metric">
             <span>Retorno na Cabeça</span>
-            <strong style="color: #fbbf24;">R$ 4.578,00+</strong>
+            <strong style="color: var(--accent-gold);">R$ 4.578,00+</strong>
           </div>
           <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
             <div style="display: flex; justify-content: space-between; width: 100%;">
               <span>Taxa Dinâmica de Acerto</span>
-              <strong id="t3-taxa" style="color: #fbbf24;">--%</strong>
+              <strong id="t3-taxa" style="color: var(--accent-gold);">--%</strong>
             </div>
-            <span id="t3-amostra" style="font-size: 0.72rem; color: var(--text-muted);">Calculando amostragem...</span>
+            <span id="t3-amostra" style="font-size: 0.74rem; color: var(--text-muted);">Calculando amostragem...</span>
           </div>
           <div class="tier-metric">
             <span>ROI Dinâmico Estimado</span>
-            <strong style="color: #fbbf24;" id="t3-roi">--%</strong>
+            <strong style="color: var(--accent-gold);" id="t3-roi">--%</strong>
           </div>
           <div class="games-box" id="t3-milhares">Carregando fechamento de 100 milhares...</div>
           <button class="btn-copy" onclick="copiarTexto('t3-milhares')">📋 Copiar 100 Milhares</button>
@@ -227,14 +310,14 @@
             <input type="text" id="filtro-milhar" placeholder="Ex: 1799" maxlength="4">
           </div>
           <div class="filter-group" style="justify-content: flex-end;">
-            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin-top: 1.5rem;">
               <input type="checkbox" id="filtro-cabeca" style="width: auto;"> Apenas 1º Prêmio (Cabeça)
             </label>
           </div>
         </div>
         <div class="filter-actions">
           <button class="btn-reset" onclick="resetFiltros()">Limpar Filtros</button>
-          <button class="btn-filter" onclick="aplicarFiltros(1)">Aplicar Filtro</button>
+          <button class="btn-filter" onclick="aplicarFiltros(1)">Aplicar Filtros</button>
         </div>
       </div>
 
@@ -257,7 +340,7 @@
             </tr>
           </thead>
           <tbody id="tabela-resultados-body">
-            <tr><td colspan="11" style="text-align: center; padding: 2rem;">Carregando resultados...</td></tr>
+            <tr><td colspan="11" style="text-align: center; padding: 2rem;">Buscando resultados...</td></tr>
           </tbody>
         </table>
       </div>
@@ -280,7 +363,7 @@
           <span>🔍</span> Consultar Puxadas de Qualquer Animal
         </div>
         <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-          <select id="puxada-select-bicho" style="flex: 1; min-width: 240px; padding: 0.65rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-size: 1rem;">
+          <select id="puxada-select-bicho" style="flex: 1; min-width: 240px; padding: 0.65rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-size: 1rem;">
             <!-- Preenchido via JS -->
           </select>
           <button class="btn-filter" onclick="consultarPuxada()">Analisar Puxadas</button>
@@ -297,7 +380,7 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-title" style="color: #38bdf8; margin-bottom: 1rem;">
+          <div class="card-title" style="color: var(--accent); margin-bottom: 1rem;">
             <span>⬅️</span> Este bicho é PUXADO principalmente quando sai:
           </div>
           <div id="puxada-entrada-container">
@@ -319,8 +402,8 @@
         
         <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
           <div style="flex: 1; min-width: 180px;">
-            <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.3rem;">Modalidade da Aposta</label>
-            <select id="conf-tipo" style="width: 100%; padding: 0.6rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff;">
+            <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.35rem; text-transform: uppercase;">Modalidade da Aposta</label>
+            <select id="conf-tipo" style="width: 100%; padding: 0.65rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff;">
               <option value="milhar">Milhar (ex: 1799)</option>
               <option value="centena">Centena (ex: 799)</option>
               <option value="dezena">Dezena (ex: 99)</option>
@@ -329,7 +412,7 @@
           </div>
         </div>
 
-        <textarea id="conf-apostas" rows="5" placeholder="Cole aqui seus jogos... Exemplo:&#10;1799&#10;0526&#10;1154" style="width: 100%; padding: 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-family: monospace; font-size: 0.95rem;"></textarea>
+        <textarea id="conf-apostas" rows="5" placeholder="Cole aqui seus jogos... Exemplo:&#10;1799&#10;0526&#10;1154" style="width: 100%; padding: 0.85rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-family: var(--font-mono); font-size: 0.95rem;"></textarea>
         
         <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
           <button class="btn-filter" onclick="conferirApostas()">Conferir Bilhete</button>
@@ -343,7 +426,9 @@
 
   </main>
 
-  <!-- Toast Notification -->
+  <!-- ========================================================================
+       TOAST NOTIFICATION
+       ======================================================================== -->
   <div id="toast" class="toast">
     <span id="toast-icon">✅</span>
     <span id="toast-msg">Mensagem</span>

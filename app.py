@@ -12,7 +12,9 @@ from database import (
     adicionar_aposta_fila, listar_fila_apostas, remover_aposta_fila,
     obter_sorteios_posteriores, conferir_aposta_ciclo, obter_estatisticas_ciclos,
     obter_metricas_assertividade_longo_prazo,
-    init_usuarios_table, cadastrar_usuario, autenticar_usuario
+    init_usuarios_table, cadastrar_usuario, autenticar_usuario,
+    REGRAS_ZAZA, SORTEIO_EXEMPLO_AULA, EXEMPLOS_AULA_ZAZA,
+    conferir_apostas_zaza, resolver_grupo_bicho
 )
 from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
@@ -44,9 +46,19 @@ app.add_middleware(
 )
 
 class ConferirRequest(BaseModel):
-    tipo: str # "milhar", "centena", "dezena", "grupo"
+    tipo: str # "grupo", "dezena", "centena", "milhar", "duque_grupo", "duque_dezena", "terno_grupo", "terno_dezena"
+    posicao: Optional[str] = "cabeca" # "cabeca" (1º prêmio) ou "cercado" (1º ao 5º prêmio)
+    valor_aposta: Optional[float] = 1.0 # Valor em R$ por bilhete
     apostas: List[str]
+    origem_sorteio: Optional[str] = "ultimo" # "ultimo", "aula_zaza", ou "id"
     id_sorteio: Optional[int] = None
+
+class SimularAulaRequest(BaseModel):
+    exemplo_id: Optional[str] = None
+    tipo: Optional[str] = None
+    posicao: Optional[str] = "cabeca"
+    valor_aposta: Optional[float] = 10.0
+    apostas: Optional[List[str]] = None
 
 class LoginRequest(BaseModel):
     username: str
@@ -146,75 +158,107 @@ def api_puxadas(bicho: str = Query(..., description="Nome do animal para consult
 def api_sync():
     return sync_latest_results()
 
+@app.get("/api/regras-apostas")
+def api_regras_apostas():
+    return {
+        "status": "success",
+        "regras": REGRAS_ZAZA,
+        "bichos": [
+            {
+                "grupo": f"{g:02d}",
+                "nome": v["nome"],
+                "icone": v["icone"],
+                "dezenas": v["dezenas"]
+            }
+            for g, v in sorted(BICHO_INFO.items())
+        ],
+        "sorteio_aula": SORTEIO_EXEMPLO_AULA,
+        "exemplos_aula": EXEMPLOS_AULA_ZAZA
+    }
+
+@app.post("/api/simular-aula-zaza")
+def api_simular_aula_zaza(req: SimularAulaRequest):
+    if req.exemplo_id:
+        ex = next((e for e in EXEMPLOS_AULA_ZAZA if e["id"] == req.exemplo_id), None)
+        if not ex:
+            raise HTTPException(status_code=404, detail="Exemplo da aula não encontrado.")
+        res = conferir_apostas_zaza(
+            tipo=ex["tipo"],
+            posicao=ex["posicao"],
+            valor_aposta=float(ex["valor"]),
+            apostas=[ex["aposta"]],
+            sorteio_alvo=SORTEIO_EXEMPLO_AULA
+        )
+        res["exemplo_info"] = ex
+        return res
+
+    tipo = req.tipo or "grupo"
+    pos = req.posicao or "cabeca"
+    val = float(req.valor_aposta or 10.0)
+    apostas = req.apostas or ["Tigre"]
+    return conferir_apostas_zaza(
+        tipo=tipo,
+        posicao=pos,
+        valor_aposta=val,
+        apostas=apostas,
+        sorteio_alvo=SORTEIO_EXEMPLO_AULA
+    )
+
 @app.post("/api/conferir")
 def api_conferir(req: ConferirRequest):
-    latest_draw = get_latest_draw()
-    if not latest_draw:
-        raise HTTPException(status_code=400, detail="Nenhum sorteio registrado para conferência.")
-        
-    cabeca = latest_draw[0]
-    hits = []
+    sorteio_alvo = None
+    origem_label = ""
     
-    apostas_clean = [a.strip() for a in req.apostas if a.strip()]
-    
-    for aposta in apostas_clean:
-        hit = False
-        premio_atingido = ""
-        retorno = 0
+    if req.origem_sorteio == "aula_zaza":
+        sorteio_alvo = SORTEIO_EXEMPLO_AULA
+        origem_label = "Exemplo Didático da Aula do Professor Zazá"
+    elif req.id_sorteio:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM resultados WHERE id_sorteio = ? ORDER BY premio_num ASC", (req.id_sorteio,))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        if not rows:
+            raise HTTPException(status_code=404, detail="Sorteio especificado não encontrado.")
+        sorteio_alvo = rows
+        origem_label = f"{rows[0]['data']} ({rows[0]['extracao']})"
+    else:
+        latest = get_latest_draw()
+        if not latest:
+            sorteio_alvo = SORTEIO_EXEMPLO_AULA
+            origem_label = "Exemplo da Aula do Zazá (Base sem sorteios)"
+        else:
+            sorteio_alvo = latest
+            origem_label = f"{latest[0]['data']} ({latest[0]['extracao']})"
+            
+    try:
+        resultado = conferir_apostas_zaza(
+            tipo=req.tipo,
+            posicao=req.posicao or "cabeca",
+            valor_aposta=float(req.valor_aposta or 1.0),
+            apostas=req.apostas,
+            sorteio_alvo=sorteio_alvo
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
         
-        if req.tipo == "milhar":
-            if aposta == cabeca["milhar"]:
-                hit = True
-                premio_atingido = "1º Prêmio (Cabeça) - MILHAR SECA!"
-                retorno = 4578.00
-            else:
-                for r in latest_draw[1:5]:
-                    if aposta == r["milhar"]:
-                        hit = True
-                        premio_atingido = f"{r['premio']} Prêmio (Cercado) - Milhar"
-                        retorno = 800.00
-                        break
-        elif req.tipo == "centena":
-            if aposta == cabeca["centena"]:
-                hit = True
-                premio_atingido = "1º Prêmio (Cabeça) - CENTENA SECA!"
-                retorno = 578.00
-            else:
-                for r in latest_draw[1:5]:
-                    if aposta == r["centena"]:
-                        hit = True
-                        premio_atingido = f"{r['premio']} Prêmio (Cercado) - Centena"
-                        retorno = 100.00
-                        break
-        elif req.tipo == "dezena":
-            if aposta == cabeca["dezena"]:
-                hit = True
-                premio_atingido = "1º Prêmio (Cabeça) - DEZENA SECA!"
-                retorno = 60.00
-        elif req.tipo == "grupo":
-            g_str = f"{int(aposta):02d}" if aposta.isdigit() else aposta
-            if g_str == cabeca["grupo"] or aposta.lower() == cabeca["bicho"].lower():
-                hit = True
-                premio_atingido = "1º Prêmio (Cabeça) - GRUPO SECO!"
-                retorno = 18.00
-                
-        if hit:
-            hits.append({
-                "aposta": aposta,
-                "premio": premio_atingido,
-                "retorno_estimado": retorno
+    cabeca = resultado["sorteio"][0]
+    hits_legado = []
+    for d in resultado["detalhes"]:
+        if d.get("acertou"):
+            hits_legado.append({
+                "aposta": d["aposta"],
+                "premio": ", ".join(d["premios_atingidos"]),
+                "retorno_estimado": d["retorno"]
             })
             
-    total_premio = sum(h["retorno_estimado"] for h in hits)
-    return {
-        "sorteio_conferido": f"{cabeca['data']} ({cabeca['extracao']})",
+    resultado.update({
+        "sorteio_conferido": origem_label,
         "milhar_sorteada": cabeca["milhar"],
         "bicho_sorteado": f"{cabeca['icone']} {cabeca['bicho']}",
-        "total_apostas": len(apostas_clean),
-        "total_acertos": len(hits),
-        "acertos": hits,
-        "premio_total": total_premio
-    }
+        "acertos": hits_legado
+    })
+    return resultado
 
 class FilaAddRequest(BaseModel):
     nome_estrategia: str

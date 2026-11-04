@@ -1616,3 +1616,455 @@ window.addEventListener("load", () => {
     }
   }
 });
+
+
+
+// ==========================================================================
+// MÓDULO: COMO JOGAR NO JOGO DO BICHO - AULA MATEMÁTICA DU ZAZÁ
+// ==========================================================================
+let zazaSorteioAtual = "aula_zaza";
+let zazaDadosAula = null;
+let zazaRegras = {};
+let zazaBichos = [];
+let zazaExemplos = [];
+let zazaSorteioAtivo = [];
+
+async function carregarModuloZaza() {
+  try {
+    const res = await fetch("/api/regras-apostas");
+    if (!res.ok) return;
+    const data = await res.json();
+    zazaDadosAula = data;
+    zazaRegras = data.regras || {};
+    zazaBichos = data.bichos || [];
+    zazaExemplos = data.exemplos_aula || [];
+    zazaSorteioAtivo = data.sorteio_aula || [];
+
+    renderizarSorteioAtivoZaza();
+    renderizarExemplosZaza();
+    renderizarCardsRegrasZaza();
+    renderizarBichosZaza();
+    atualizarInterfaceModalidadeZaza();
+  } catch (e) {
+    console.error("Erro ao carregar módulo do Zazá:", e);
+  }
+}
+
+function carregarSorteioAulaZaza() {
+  zazaSorteioAtual = "aula_zaza";
+  if (zazaDadosAula && zazaDadosAula.sorteio_aula) {
+    zazaSorteioAtivo = zazaDadosAula.sorteio_aula;
+  }
+  const titleEl = document.getElementById("zaza-sorteio-titulo");
+  const badgeEl = document.getElementById("zaza-sorteio-badge");
+  if (titleEl) titleEl.textContent = "Exemplo Hipotético da Aula (Prof. Zazá)";
+  if (badgeEl) {
+    badgeEl.textContent = "Aula Matemática du Zazá";
+    badgeEl.style.borderColor = "#f59e0b";
+    badgeEl.style.color = "#f59e0b";
+  }
+  renderizarSorteioAtivoZaza();
+  showToast("🎓 Sorteio da aula do Professor Zazá ativo!");
+}
+
+async function carregarUltimoSorteioRealZaza() {
+  try {
+    const res = await fetch("/api/resultados?page=1&page_size=10");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.data || data.data.length === 0) {
+      showToast("Nenhum sorteio registrado na base.", false);
+      return;
+    }
+    
+    const idPrimeiro = data.data[0].id_sorteio;
+    const premiosReal = data.data.filter(r => r.id_sorteio === idPrimeiro).slice(0, 5);
+    
+    zazaSorteioAtual = "ultimo";
+    zazaSorteioAtivo = premiosReal.map(r => ({
+      premio: r.premio,
+      premio_num: r.premio_num,
+      milhar: r.milhar,
+      centena: r.centena,
+      dezena: r.dezena,
+      grupo: r.grupo,
+      bicho: r.bicho,
+      icone: r.icone
+    }));
+
+    const titleEl = document.getElementById("zaza-sorteio-titulo");
+    const badgeEl = document.getElementById("zaza-sorteio-badge");
+    if (titleEl) titleEl.textContent = `Último Sorteio Oficial: ${premiosReal[0].data} (${premiosReal[0].extracao})`;
+    if (badgeEl) {
+      badgeEl.textContent = "Base Oficial Deu no Poste";
+      badgeEl.style.borderColor = "var(--primary)";
+      badgeEl.style.color = "var(--primary)";
+    }
+    renderizarSorteioAtivoZaza();
+    showToast("🔄 Último sorteio real da base carregado!");
+  } catch (e) {
+    showToast("Falha ao buscar sorteio real.", false);
+  }
+}
+
+function renderizarSorteioAtivoZaza() {
+  const container = document.getElementById("zaza-draw-container");
+  if (!container || !zazaSorteioAtivo) return;
+
+  container.innerHTML = zazaSorteioAtivo.map((p, idx) => {
+    const isCabeca = p.premio_num === 1;
+    return `
+      <div class="zaza-prize-card ${isCabeca ? 'cabeca' : ''}">
+        <div class="premio-label">
+          <span>${p.premio}</span>
+          ${isCabeca ? '<span class="card-badge badge-gold" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">CABEÇA</span>' : ''}
+        </div>
+        <div class="milhar-val">${p.milhar}</div>
+        <div class="bicho-val">
+          <span style="font-size: 1.15rem;">${p.icone || '🎲'}</span>
+          <strong>${p.bicho}</strong>
+          <span style="color: var(--text-muted); font-size: 0.78rem;">(G${p.grupo})</span>
+        </div>
+        <div class="breakdown">
+          <span>Centena: <strong style="color: #fff;">${p.centena}</strong></span>
+          <span>•</span>
+          <span>Dezena: <strong style="color: var(--accent-gold);">${p.dezena}</strong></span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderizarExemplosZaza() {
+  const container = document.getElementById("zaza-exemplos-buttons");
+  if (!container || !zazaExemplos) return;
+
+  container.innerHTML = zazaExemplos.map(ex => `
+    <button type="button" class="zaza-ex-btn" id="btn-ex-${ex.id}" onclick="selecionarExemploZaza('${ex.id}')">
+      <div class="ex-title">
+        <span>${ex.titulo}</span>
+        <span class="ex-mult">${ex.mult_esperado}x</span>
+      </div>
+      <div class="ex-desc">${ex.explicacao}</div>
+    </button>
+  `).join("");
+}
+
+async function selecionarExemploZaza(exId) {
+  const ex = zazaExemplos.find(e => e.id === exId);
+  if (!ex) return;
+
+  if (zazaSorteioAtual !== "aula_zaza") {
+    carregarSorteioAulaZaza();
+  }
+
+  document.querySelectorAll(".zaza-ex-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById(`btn-ex-${exId}`);
+  if (btn) btn.classList.add("active");
+
+  const tipoEl = document.getElementById("zaza-tipo");
+  const posEl = document.getElementById("zaza-posicao");
+  const valEl = document.getElementById("zaza-valor");
+  const apoEl = document.getElementById("zaza-apostas");
+
+  if (tipoEl) tipoEl.value = ex.tipo;
+  if (posEl) posEl.value = ex.posicao;
+  if (valEl) valEl.value = ex.valor.toFixed(2);
+  if (apoEl) apoEl.value = ex.aposta;
+
+  atualizarInterfaceModalidadeZaza();
+  await executarConferenciaZaza();
+}
+
+function atualizarInterfaceModalidadeZaza() {
+  const tipo = document.getElementById("zaza-tipo")?.value || "grupo";
+  const regra = zazaRegras[tipo];
+  const groupPos = document.getElementById("group-posicao-zaza");
+  const labelApostas = document.getElementById("zaza-label-apostas");
+  const hintApostas = document.getElementById("zaza-hint-apostas");
+  const infoRegra = document.getElementById("zaza-info-regra-resumo");
+
+  if (!regra) return;
+
+  if (groupPos) {
+    if (!regra.suporta_cabeca) {
+      groupPos.style.opacity = "0.5";
+      groupPos.style.pointerEvents = "none";
+      const selPos = document.getElementById("zaza-posicao");
+      if (selPos) selPos.value = "cercado";
+    } else {
+      groupPos.style.opacity = "1";
+      groupPos.style.pointerEvents = "auto";
+    }
+  }
+
+  if (tipo === "grupo") {
+    if (labelApostas) labelApostas.textContent = "Animal / Grupo Escolhido";
+    if (hintApostas) hintApostas.textContent = "Ex: Tigre ou 22";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 18x na cabeça ou 3,6x do 1º ao 5º prêmio (18 ÷ 5 = 3,6x).";
+  } else if (tipo === "dezena") {
+    if (labelApostas) labelApostas.textContent = "Dezena Escolhida (2 algarismos)";
+    if (hintApostas) hintApostas.textContent = "Ex: 87 (ou várias separadas por vírgula)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 60x na cabeça ou 12x do 1º ao 5º prêmio (60 ÷ 5 = 12x).";
+  } else if (tipo === "centena") {
+    if (labelApostas) labelApostas.textContent = "Centena Escolhida (3 algarismos)";
+    if (hintApostas) hintApostas.textContent = "Ex: 587";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 600x na cabeça ou 120x do 1º ao 5º prêmio (600 ÷ 5 = 120x).";
+  } else if (tipo === "milhar") {
+    if (labelApostas) labelApostas.textContent = "Milhar Escolhida (4 algarismos)";
+    if (hintApostas) hintApostas.textContent = "Ex: 1587";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 4.000x na cabeça ou 800x do 1º ao 5º prêmio (4000 ÷ 5 = 800x).";
+  } else if (tipo === "duque_grupo") {
+    if (labelApostas) labelApostas.textContent = "2 Animais para Duque de Grupo";
+    if (hintApostas) hintApostas.textContent = "Ex: Cavalo e Galo (ou 11 e 13)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 18,5x se ambos saírem entre os 5 prêmios (ordem irrelevante).";
+  } else if (tipo === "duque_dezena") {
+    if (labelApostas) labelApostas.textContent = "2 Dezenas para Duque de Dezenas";
+    if (hintApostas) hintApostas.textContent = "Ex: 44 e 23";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 300x se ambas as dezenas saírem entre os 5 prêmios.";
+  } else if (tipo === "terno_grupo") {
+    if (labelApostas) labelApostas.textContent = "3 Animais para Terno de Grupo";
+    if (hintApostas) hintApostas.textContent = "Ex: Cabra, Tigre e Pavão";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 130x se os 3 animais saírem entre os 5 prêmios.";
+  } else if (tipo === "terno_dezena") {
+    if (labelApostas) labelApostas.textContent = "3 Dezenas para Terno de Dezenas";
+    if (hintApostas) hintApostas.textContent = "Ex: 87, 52 e 75";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 3.000x se as 3 dezenas saírem entre os 5 prêmios.";
+  }
+
+  atualizarMultiplicadorDisplayZaza();
+}
+
+function atualizarMultiplicadorDisplayZaza() {
+  const tipo = document.getElementById("zaza-tipo")?.value || "grupo";
+  const pos = document.getElementById("zaza-posicao")?.value || "cabeca";
+  const valor = parseFloat(document.getElementById("zaza-valor")?.value || 10.0);
+  const display = document.getElementById("zaza-display-mult");
+  const regra = zazaRegras[tipo];
+
+  if (!display || !regra) return;
+
+  let mult = 0;
+  if (!regra.suporta_cabeca || pos === "cercado") {
+    mult = regra.mult_cercado;
+  } else {
+    mult = regra.mult_cabeca;
+  }
+
+  const retornoUnitario = valor * mult;
+  display.innerHTML = `<span>${mult}x</span> <span style="font-size: 0.88rem; color: var(--text-muted); font-weight: 500;">(Retorno: <strong style="color: var(--primary);">R$ ${retornoUnitario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>)</span>`;
+}
+
+function setValorApostaZaza(val) {
+  const input = document.getElementById("zaza-valor");
+  if (input) {
+    input.value = Number(val).toFixed(2);
+    atualizarMultiplicadorDisplayZaza();
+  }
+}
+
+function limparSimuladorZaza() {
+  const inputApostas = document.getElementById("zaza-apostas");
+  if (inputApostas) inputApostas.value = "";
+  const resDiv = document.getElementById("zaza-resultado-container");
+  if (resDiv) resDiv.style.display = "none";
+  document.querySelectorAll(".zaza-ex-btn").forEach(b => b.classList.remove("active"));
+}
+
+function selecionarBichoParaAposta(grupoNum, bichoNome) {
+  const tipo = document.getElementById("zaza-tipo")?.value || "grupo";
+  const txt = document.getElementById("zaza-apostas");
+  if (!txt) return;
+
+  if (tipo === "grupo") {
+    txt.value = bichoNome;
+  } else if (tipo === "duque_grupo" || tipo === "terno_grupo") {
+    if (!txt.value.trim()) {
+      txt.value = bichoNome;
+    } else {
+      txt.value += ` e ${bichoNome}`;
+    }
+  } else {
+    const bicho = zazaBichos.find(b => b.grupo === grupoNum);
+    if (bicho && bicho.dezenas) {
+      txt.value = bicho.dezenas.join(", ");
+    }
+  }
+  showToast(`${bichoNome} selecionado!`);
+  atualizarMultiplicadorDisplayZaza();
+}
+
+async function submeterConferenciaZaza(e) {
+  if (e) e.preventDefault();
+  await executarConferenciaZaza();
+}
+
+async function executarConferenciaZaza() {
+  const tipo = document.getElementById("zaza-tipo")?.value || "grupo";
+  const pos = document.getElementById("zaza-posicao")?.value || "cabeca";
+  const valor = parseFloat(document.getElementById("zaza-valor")?.value || 10.0);
+  const rawText = document.getElementById("zaza-apostas")?.value.trim() || "";
+  const resDiv = document.getElementById("zaza-resultado-container");
+
+  if (!rawText) {
+    showToast("Informe o palpite ou número a ser conferido.", false);
+    return;
+  }
+
+  const apostas = rawText.split(/[
+;]+/).map(a => a.trim()).filter(a => a.length > 0);
+
+  if (resDiv) {
+    resDiv.style.display = "block";
+    resDiv.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center;">Auditando palpites contra o sorteio ativo...</div>';
+  }
+
+  try {
+    const res = await fetch("/api/conferir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipo: tipo,
+        posicao: pos,
+        valor_aposta: valor,
+        apostas: apostas,
+        origem_sorteio: zazaSorteioAtual
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      resDiv.innerHTML = `<div style="color: var(--danger); padding: 1rem;">${err.detail || 'Erro ao processar conferência.'}</div>`;
+      return;
+    }
+
+    const data = await res.json();
+    const isPremiado = data.total_acertos > 0;
+
+    let html = `
+      <div class="zaza-receipt-card" style="border-left: 4px solid ${isPremiado ? 'var(--primary)' : 'var(--border)'};">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Resultado da Auditoria Oficial</div>
+            <strong style="font-size: 1.15rem; color: #fff;">${data.nome_modalidade} • ${data.posicao === 'cabeca' ? 'Na Cabeça (1º Prêmio)' : '1º ao 5º Prêmio (Cercado)'}</strong>
+          </div>
+          <div>
+            ${isPremiado ? `
+              <span class="card-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--primary); border: 1px solid var(--primary); font-size: 0.95rem; font-weight: 900; padding: 0.35rem 0.85rem;">
+                🎉 BILHETE CONTEMPLADO!
+              </span>
+            ` : `
+              <span class="card-badge" style="background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid var(--border); font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                NÃO CONTEMPLADO
+              </span>
+            `}
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem;">
+          <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Total de Apostas</div>
+            <strong style="font-size: 1.1rem; color: #fff;">${data.total_apostas}</strong>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Investimento Total</div>
+            <strong style="font-size: 1.1rem; color: #fff;">R$ ${data.investimento_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Acertos</div>
+            <strong style="font-size: 1.1rem; color: ${isPremiado ? 'var(--primary)' : 'var(--text-muted)'};">${data.total_acertos}</strong>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Retorno Bruto</div>
+            <strong style="font-size: 1.25rem; color: ${isPremiado ? 'var(--accent-gold)' : 'var(--text-muted)'};">R$ ${data.premio_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Lucro Líquido</div>
+            <strong style="font-size: 1.25rem; color: ${data.lucro_liquido > 0 ? 'var(--primary)' : (data.lucro_liquido < 0 ? 'var(--danger)' : 'var(--text-muted)')};">
+              ${data.lucro_liquido >= 0 ? '+' : ''} R$ ${data.lucro_liquido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+            </strong>
+          </div>
+        </div>
+    `;
+
+    if (data.detalhes && data.detalhes.length > 0) {
+      html += `<div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Detalhamento das Apostas:</div>`;
+      data.detalhes.forEach(d => {
+        const hit = d.acertou;
+        html += `
+          <div style="background: ${hit ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)'}; border: 1px solid ${hit ? 'rgba(16, 185, 129, 0.35)' : 'var(--border)'}; border-radius: 6px; padding: 0.65rem 0.85rem; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <strong style="color: #fff; font-family: var(--font-mono); font-size: 0.98rem;">${d.info_aposta || d.aposta}</strong>
+              <div style="font-size: 0.78rem; color: ${hit ? 'var(--primary)' : 'var(--text-muted)'}; margin-top: 0.15rem;">
+                ${hit ? `🎯 ${d.premios_atingidos.join(' • ')} (${d.multiplicador}x)` : '❌ Não contemplado neste sorteio'}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Apostado: R$ ${d.valor_apostado.toFixed(2)}</div>
+              <strong style="font-size: 1rem; color: ${hit ? 'var(--primary)' : 'var(--text-muted)'};">
+                ${hit ? `+ R$ ${d.retorno.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : 'R$ 0,00'}
+              </strong>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    html += `</div>`;
+    resDiv.innerHTML = html;
+
+  } catch (e) {
+    resDiv.innerHTML = '<div style="color: var(--danger); padding: 1rem;">Falha na comunicação com o servidor.</div>';
+  }
+}
+
+function renderizarCardsRegrasZaza() {
+  const container = document.getElementById("zaza-cards-regras");
+  if (!container || !zazaRegras) return;
+
+  container.innerHTML = Object.values(zazaRegras).map(r => `
+    <div class="zaza-rule-card">
+      <div class="zaza-rule-header">
+        <span class="zaza-rule-title">${r.nome}</span>
+        <span class="zaza-badge" style="font-size: 0.65rem;">${r.qtd_elementos} ${r.qtd_elementos === 1 ? 'ITEM' : 'ITENS'}</span>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; min-height: 38px;">
+        ${r.descricao}
+      </p>
+      <div class="zaza-rule-payouts">
+        ${r.suporta_cabeca ? `
+          <div class="zaza-payout-badge highlight">
+            <span class="label">Na Cabeça (1º)</span>
+            <span class="val">${r.mult_cabeca}X</span>
+          </div>
+        ` : ''}
+        <div class="zaza-payout-badge ${!r.suporta_cabeca ? 'highlight' : ''}">
+          <span class="label">1º ao 5º (Cercado)</span>
+          <span class="val">${r.mult_cercado}X</span>
+        </div>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.4rem; display: flex; justify-content: space-between;">
+        <span>Exemplo da Aula:</span>
+        <strong style="color: var(--accent);">${r.exemplo_aula}</strong>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderizarBichosZaza() {
+  const container = document.getElementById("zaza-bichos-container");
+  if (!container || !zazaBichos) return;
+
+  container.innerHTML = zazaBichos.map(b => `
+    <div class="zaza-bicho-item" onclick="selecionarBichoParaAposta('${b.grupo}', '${b.nome}')" title="Clique para escolher ${b.nome}">
+      <div class="zaza-bicho-top">
+        <span class="zaza-bicho-grupo">GRUPO ${b.grupo}</span>
+        <span style="font-size: 1.35rem;">${b.icone}</span>
+      </div>
+      <div class="zaza-bicho-nome">${b.nome}</div>
+      <div class="zaza-bicho-dezenas">
+        ${b.dezenas.map(d => `<span class="zaza-dez-chip">${d}</span>`).join("")}
+      </div>
+    </div>
+  `).join("");
+}

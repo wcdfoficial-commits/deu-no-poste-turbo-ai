@@ -435,9 +435,10 @@
   <div class="tabs-container">
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('tab-predicoes')">🎯 Palpites & Fechamentos IA</button>
+      <button class="tab-btn" onclick="switchTab('tab-regras')">🎓 Regras & Simulador Zazá</button>
       <button class="tab-btn" onclick="switchTab('tab-resultados')">📊 Resultados & Filtros</button>
       <button class="tab-btn" onclick="switchTab('tab-puxadas')">🔄 Radar de Puxadas Interativo</button>
-      <button class="tab-btn" onclick="switchTab('tab-conferidor')">🎫 Conferidor de Bilhetes</button>
+      <button class="tab-btn" onclick="switchTab('tab-conferidor')">🎫 Fila de Ciclos & Auditoria</button>
       <button class="tab-btn" onclick="switchTab('tab-autopilot')">🤖 Piloto Automático & Assertividade</button>
     </div>
   </div>
@@ -521,7 +522,7 @@
           </div>
           <div class="tier-metric">
             <span>Retorno Centena / Dezena</span>
-            <strong style="color: var(--accent);">R$ 578,00 / R$ 78,00</strong>
+            <strong style="color: var(--accent);">R$ 600,00 (600x) / R$ 60,00 (60x)</strong>
           </div>
           <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
             <div style="display: flex; justify-content: space-between; width: 100%;">
@@ -555,7 +556,7 @@
           </div>
           <div class="tier-metric">
             <span>Retorno na Cabeça</span>
-            <strong style="color: var(--accent-gold);">R$ 4.578,00+</strong>
+            <strong style="color: var(--accent-gold);">R$ 4.000,00 (4.000x)</strong>
           </div>
           <div class="tier-metric" style="flex-direction: column; align-items: flex-start; gap: 0.2rem;">
             <div style="display: flex; justify-content: space-between; width: 100%;">
@@ -588,6 +589,183 @@
       </div>
 
     </div>
+
+        <!-- ABA: REGRAS & TIPOS DE APOSTAS (AULA MATEMÁTICA DU ZAZÁ) -->
+    <div id="tab-regras" class="tab-content">
+      
+      <!-- Banner Educacional do Zazá -->
+      <div class="card zaza-banner-card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div style="flex: 1; min-width: 320px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+              <span class="zaza-badge">VÍDEO EDUCACIONAL OFICIAL</span>
+              <span style="font-size: 0.85rem; color: var(--accent-gold); font-weight: 700;">Prof. Zazá • Matemática du Zazá</span>
+            </div>
+            <h2 style="font-size: 1.45rem; font-weight: 900; color: #fff; margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+              Como Jogar no Jogo do Bicho: Regras, Grupos & Tipos de Apostas
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; max-width: 900px;">
+              Criado originalmente em 1892 pelo Barão de Drummond no Jardim Zoológico do Rio de Janeiro, o jogo possui <strong>25 grupos de animais</strong> com 4 dezenas consecutivas cada (01 a 00).
+              <br>
+              <strong>Regra Matemática da Cotação:</strong> Na aposta do <em>1º ao 5º prêmio (cercado)</em>, como a chance de contemplação multiplica por 5, o multiplicador da cabeça é <strong>dividido exatamente por 5</strong> (ex: Grupo 18 ÷ 5 = 3,6x; Dezena 60 ÷ 5 = 12x; Centena 600 ÷ 5 = 120x; Milhar 4000 ÷ 5 = 800x). Em <strong>Duques e Ternos</strong>, a ordem das dezenas ou grupos é totalmente irrelevante.
+            </p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 210px;">
+            <button class="btn-sync" onclick="carregarSorteioAulaZaza()" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 800; border: none; padding: 0.65rem 1rem;">
+              <span>🎓</span> Sorteio da Aula do Zazá
+            </button>
+            <button class="btn-filter" onclick="carregarUltimoSorteioRealZaza()" style="background: rgba(56, 189, 248, 0.12); border: 1px solid var(--accent); color: var(--accent); padding: 0.65rem 1rem;">
+              <span>🔄</span> Último Sorteio Real (Base)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL DO SORTEIO ATIVO (AULA OU REAL) -->
+      <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent-gold);">
+        <div class="card-header" style="margin-bottom: 1rem;">
+          <div class="card-title">
+            <span>🎲</span> Sorteio em Análise: <span id="zaza-sorteio-titulo" style="color: var(--accent-gold); font-weight: 800;">Exemplo Hipotético da Aula (Prof. Zazá)</span>
+          </div>
+          <span class="card-badge" id="zaza-sorteio-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b;">5 Prêmios Oficiais</span>
+        </div>
+        
+        <div class="zaza-draw-grid" id="zaza-draw-container">
+          <!-- 5 cartões de prêmio gerados via JS -->
+        </div>
+      </div>
+
+      <!-- CARROSSEL DE EXEMPLOS DA AULA COM 1 CLIQUE -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="margin-bottom: 0.75rem;">
+          <div class="card-title">
+            <span>⚡</span> Testar os 12 Exemplos Ensinados no Vídeo (1 Clique)
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Clique para auto-preencher, conferir e ver o cálculo exato</span>
+        </div>
+        <div class="zaza-examples-grid" id="zaza-exemplos-buttons">
+          <!-- Botões dos 12 exemplos -->
+        </div>
+      </div>
+
+      <!-- SIMULADOR & CONFERIDOR INTERATIVO ZAZÁ -->
+      <div class="card" style="margin-bottom: 1.5rem; border-top: 2px solid var(--primary);">
+        <div class="card-header" style="margin-bottom: 1rem;">
+          <div class="card-title">
+            <span>🧮</span> Simulador & Conferidor Interativo de Apostas
+          </div>
+          <span class="card-badge badge-green">Cálculo de Retorno em Tempo Real</span>
+        </div>
+
+        <form id="form-conferir-zaza" onsubmit="submeterConferenciaZaza(event)">
+          <div class="filter-grid" style="margin-bottom: 1rem;">
+            
+            <div class="filter-group">
+              <label for="zaza-tipo">Modalidade de Aposta</label>
+              <select id="zaza-tipo" onchange="atualizarInterfaceModalidadeZaza()">
+                <option value="grupo">Apostar no Grupo (18x / 3,6x)</option>
+                <option value="dezena">Apostar na Dezena (60x / 12x)</option>
+                <option value="centena">Apostar na Centena (600x / 120x)</option>
+                <option value="milhar">Apostar no Milhar (4.000x / 800x)</option>
+                <option value="duque_grupo">Duque de Grupo (18,5x)</option>
+                <option value="duque_dezena">Duque de Dezenas (300x)</option>
+                <option value="terno_grupo">Terno de Grupo (130x)</option>
+                <option value="terno_dezena">Terno de Dezenas (3.000x)</option>
+              </select>
+            </div>
+
+            <div class="filter-group" id="group-posicao-zaza">
+              <label for="zaza-posicao">Posição do Prêmio</label>
+              <select id="zaza-posicao" onchange="atualizarMultiplicadorDisplayZaza()">
+                <option value="cabeca">Na Cabeça (1º Prêmio)</option>
+                <option value="cercado">Do 1º ao 5º Prêmio (Cercado)</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="zaza-valor">Valor Apostado por Jogo (R$)</label>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <input type="number" id="zaza-valor" step="0.50" min="0.50" value="10.00" style="flex: 1;" required oninput="atualizarMultiplicadorDisplayZaza()">
+                <div class="quick-val-btns" style="display: flex; gap: 0.25rem;">
+                  <button type="button" class="btn-micro" onclick="setValorApostaZaza(1)">R$1</button>
+                  <button type="button" class="btn-micro" onclick="setValorApostaZaza(5)">R$5</button>
+                  <button type="button" class="btn-micro" onclick="setValorApostaZaza(10)">R$10</button>
+                  <button type="button" class="btn-micro" onclick="setValorApostaZaza(50)">R$50</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label>Multiplicador Oficial da Aula</label>
+              <div id="zaza-display-mult" style="padding: 0.65rem 1rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: var(--accent-gold); font-weight: 800; font-size: 1.05rem; text-align: center;">
+                18x (Retorno: R$ 180,00)
+              </div>
+            </div>
+
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label for="zaza-apostas" id="zaza-label-apostas">Seus Palpites / Números</label>
+              <span id="zaza-hint-apostas" style="font-size: 0.8rem; color: var(--text-muted);">Ex: Tigre ou 22</span>
+            </div>
+            <textarea id="zaza-apostas" rows="2" placeholder="Digite seus palpites aqui... Ex: Tigre" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; font-family: var(--font-mono); font-size: 1rem;" required></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem;" id="zaza-info-regra-resumo">
+              Regra da aula: 1 animal na cabeça paga 18 vezes o valor investido.
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <button type="button" class="btn-reset" onclick="limparSimuladorZaza()">Limpar</button>
+              <button type="submit" class="btn-filter" style="background: var(--primary); color: #000; font-weight: 800; padding: 0.65rem 1.4rem;">
+                ⚡ Conferir & Calcular Retorno
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Extrato da Conferência / Comprovante -->
+        <div id="zaza-resultado-container" style="display: none; margin-top: 1.5rem;">
+          <!-- Resultado renderizado aqui -->
+        </div>
+      </div>
+
+      <!-- VITRINE DOS 8 TIPOS DE APOSTAS E REGRAS -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="margin-bottom: 1rem;">
+          <div class="card-title">
+            <span>📚</span> Catálogo dos 8 Tipos de Apostas & Cotações Oficiais
+          </div>
+          <span style="font-size: 0.82rem; color: var(--text-muted);">Conforme aula do Prof. Zazá</span>
+        </div>
+        <div class="zaza-rules-grid" id="zaza-cards-regras">
+          <!-- 8 cards dos tipos de aposta -->
+        </div>
+      </div>
+
+      <!-- TABELA DOS 25 GRUPOS E DEZENAS (ESTILO SLIDE DO ZAZÁ) -->
+      <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(180deg, rgba(20,25,35,0.95), rgba(12,16,24,0.98));">
+        <div class="card-header" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.85rem;">
+          <div>
+            <div class="card-title" style="color: var(--accent-gold); font-size: 1.25rem;">
+              <span>🦁</span> Tabela Oficial dos 25 Bichos e Dezenas (01 a 25)
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
+              Reprodução idêntica à tabela apresentada na aula. Cada grupo contém 4 dezenas consecutivas. O Grupo 25 termina em 00 pois apenas as dezenas são observadas. Clique em qualquer animal para adicioná-lo ao simulador!
+            </p>
+          </div>
+          <span class="card-badge" style="background: #f59e0b; color: #000; font-weight: 900;">25 GRUPOS</span>
+        </div>
+        
+        <div class="zaza-bichos-grid" id="zaza-bichos-container">
+          <!-- 25 cards de bichos com 4 dezenas cada -->
+        </div>
+      </div>
+
+    </div>
+
+
 
     <!-- ABA 2: RESULTADOS & FILTROS -->
     <div id="tab-resultados" class="tab-content">

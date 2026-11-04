@@ -257,7 +257,7 @@ def generate_ai_predictions() -> Dict[str, Any]:
         hits_centena_n2 = df_targets["centena"].isin(nivel_2_centenas).sum()
         hits_dezena_n2 = df_targets["dezena"].isin(dezenas_bicho_alvo).sum()
         taxa_n2 = (hits_centena_n2 / amostra_historica) * 100
-        retorno_n2 = (hits_centena_n2 * 578) + ((hits_dezena_n2 - hits_centena_n2) * 78)
+        retorno_n2 = (hits_centena_n2 * 600) + ((hits_dezena_n2 - hits_centena_n2) * 60)
         custo_n2 = amostra_historica * 20
         roi_n2 = ((retorno_n2 - custo_n2) / custo_n2) * 100 if custo_n2 > 0 else 0
         amostra_n2_str = f"{hits_centena_n2} centenas + {hits_dezena_n2} dezenas em {amostra_historica} jogos"
@@ -275,7 +275,7 @@ def generate_ai_predictions() -> Dict[str, Any]:
         dezena_fechamento = dezenas_alvo_count.index[0] if not dezenas_alvo_count.empty else dezenas_bicho_alvo[0]
         hits_n3 = (df_targets["dezena"] == dezena_fechamento).sum()
         taxa_n3 = (hits_n3 / amostra_historica) * 100
-        retorno_n3 = hits_n3 * 4578
+        retorno_n3 = hits_n3 * 4000
         custo_n3 = amostra_historica * 100
         roi_n3 = ((retorno_n3 - custo_n3) / custo_n3) * 100 if custo_n3 > 0 else 0
         amostra_n3_str = f"{hits_n3} acertos de milhar seca em {amostra_historica} sorteios"
@@ -338,7 +338,7 @@ def generate_ai_predictions() -> Dict[str, Any]:
             "nivel_2": {
                 "titulo": "Nível 2: CENTENA DINÂMICA (COM PROTEÇÃO)",
                 "investimento": "R$ 20,00 (20 centenas a R$ 1,00)",
-                "premio_alvo": "R$ 578,00 (Centena) / R$ 78,00 (Defesa na Dezena)",
+                "premio_alvo": "R$ 600,00 (Centena Seca 600x) / R$ 60,00 (Defesa na Dezena 60x)",
                 "taxa_historica": f"{taxa_n2:.1f}% de acerto na centena",
                 "taxa_raw": round(taxa_n2, 1),
                 "amostra_historica": amostra_n2_str,
@@ -350,7 +350,7 @@ def generate_ai_predictions() -> Dict[str, Any]:
             "nivel_3": {
                 "titulo": "Nível 3: FECHAMENTO DE MILHAR (EXPLOSIVO)",
                 "investimento": "R$ 100,00 (100 milhares na dezena fixa)",
-                "premio_alvo": "R$ 4.578,00 na Cabeça (Milhar + Centena + Dezena + Grupo)",
+                "premio_alvo": "R$ 4.000,00 na Cabeça (Milhar Seca 4.000x)",
                 "dezena_fixada": dezena_fechamento,
                 "taxa_historica": f"{taxa_n3:.1f}% de acerto na milhar",
                 "taxa_raw": round(taxa_n3, 1),

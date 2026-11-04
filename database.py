@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import os
 import json
@@ -35,6 +36,541 @@ BICHO_INFO = {
     24: {"nome": "Veado", "icone": "🦌", "dezenas": ["93", "94", "95", "96"]},
     25: {"nome": "Vaca", "icone": "🐮", "dezenas": ["97", "98", "99", "00"]}
 }
+
+
+# ==============================================================================
+# REGRAS E MULTIPLICADORES OFICIAIS - AULA MATEMÁTICA DU ZAZÁ
+# ==============================================================================
+REGRAS_ZAZA = {
+    "grupo": {
+        "codigo": "grupo",
+        "nome": "Apostar no Grupo",
+        "descricao": "Aposta em 1 dos 25 animais do jogo (dezenas 01 a 00).",
+        "mult_cabeca": 18.0,
+        "mult_cercado": 3.6,
+        "suporta_cabeca": True,
+        "suporta_cercado": True,
+        "qtd_elementos": 1,
+        "exemplo_aula": "Tigre (Grupo 22)"
+    },
+    "dezena": {
+        "codigo": "dezena",
+        "nome": "Apostar na Dezena",
+        "descricao": "Aposta nos 2 últimos algarismos do prêmio.",
+        "mult_cabeca": 60.0,
+        "mult_cercado": 12.0,
+        "suporta_cabeca": True,
+        "suporta_cercado": True,
+        "qtd_elementos": 1,
+        "exemplo_aula": "87"
+    },
+    "centena": {
+        "codigo": "centena",
+        "nome": "Apostar na Centena",
+        "descricao": "Aposta nos 3 últimos algarismos do prêmio.",
+        "mult_cabeca": 600.0,
+        "mult_cercado": 120.0,
+        "suporta_cabeca": True,
+        "suporta_cercado": True,
+        "qtd_elementos": 1,
+        "exemplo_aula": "587"
+    },
+    "milhar": {
+        "codigo": "milhar",
+        "nome": "Apostar no Milhar",
+        "descricao": "Aposta nos 4 algarismos exatos do prêmio.",
+        "mult_cabeca": 4000.0,
+        "mult_cercado": 800.0,
+        "suporta_cabeca": True,
+        "suporta_cercado": True,
+        "qtd_elementos": 1,
+        "exemplo_aula": "1587"
+    },
+    "duque_grupo": {
+        "codigo": "duque_grupo",
+        "nome": "Duque de Grupo",
+        "descricao": "Aposta em 2 animais para saírem entre os 5 prêmios (ordem irrelevante).",
+        "mult_cabeca": None,
+        "mult_cercado": 18.5,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 2,
+        "exemplo_aula": "Cavalo e Galo (Grupos 11 e 13)"
+    },
+    "duque_dezena": {
+        "codigo": "duque_dezena",
+        "nome": "Duque de Dezena",
+        "descricao": "Aposta em 2 dezenas para saírem entre os 5 prêmios (ordem irrelevante).",
+        "mult_cabeca": None,
+        "mult_cercado": 300.0,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 2,
+        "exemplo_aula": "44 e 23"
+    },
+    "terno_grupo": {
+        "codigo": "terno_grupo",
+        "nome": "Terno de Grupo",
+        "descricao": "Aposta em 3 animais para saírem entre os 5 prêmios (ordem irrelevante).",
+        "mult_cabeca": None,
+        "mult_cercado": 130.0,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 3,
+        "exemplo_aula": "Cabra, Tigre e Pavão (Grupos 06, 22 e 19)"
+    },
+    "terno_dezena": {
+        "codigo": "terno_dezena",
+        "nome": "Terno de Dezena",
+        "descricao": "Aposta em 3 dezenas para saírem entre os 5 prêmios (ordem irrelevante).",
+        "mult_cabeca": None,
+        "mult_cercado": 3000.0,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 3,
+        "exemplo_aula": "87, 52 e 75"
+    }
+}
+
+SORTEIO_EXEMPLO_AULA = [
+    {"premio": "1º Prêmio", "premio_num": 1, "milhar": "1587", "centena": "587", "dezena": "87", "grupo": "22", "bicho": "Tigre", "icone": "🐯"},
+    {"premio": "2º Prêmio", "premio_num": 2, "milhar": "2544", "centena": "544", "dezena": "44", "grupo": "11", "bicho": "Cavalo", "icone": "🐴"},
+    {"premio": "3º Prêmio", "premio_num": 3, "milhar": "3152", "centena": "152", "dezena": "52", "grupo": "13", "bicho": "Galo", "icone": "🐓"},
+    {"premio": "4º Prêmio", "premio_num": 4, "milhar": "4875", "centena": "875", "dezena": "75", "grupo": "19", "bicho": "Pavão", "icone": "🦚"},
+    {"premio": "5º Prêmio", "premio_num": 5, "milhar": "7923", "centena": "923", "dezena": "23", "grupo": "06", "bicho": "Cabra", "icone": "🐐"}
+]
+
+EXEMPLOS_AULA_ZAZA = [
+    {
+        "id": "ex_grupo_cabeca",
+        "titulo": "1. Grupo Tigre na Cabeça",
+        "tipo": "grupo",
+        "posicao": "cabeca",
+        "valor": 10.0,
+        "aposta": "Tigre",
+        "mult_esperado": 18.0,
+        "retorno_esperado": 180.0,
+        "explicacao": "Tigre saiu no 1º prêmio (1587, dezena 87). Paga 18x o valor investido: R$ 10 vira R$ 180."
+    },
+    {
+        "id": "ex_grupo_cercado",
+        "titulo": "2. Grupo Tigre do 1º ao 5º",
+        "tipo": "grupo",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "Tigre",
+        "mult_esperado": 3.6,
+        "retorno_esperado": 36.0,
+        "explicacao": "A chance aumentou 5x, portanto a cotação divide por 5 (18 ÷ 5 = 3,6x). R$ 10 vira R$ 36."
+    },
+    {
+        "id": "ex_dezena_cabeca",
+        "titulo": "3. Dezena 87 na Cabeça",
+        "tipo": "dezena",
+        "posicao": "cabeca",
+        "valor": 10.0,
+        "aposta": "87",
+        "mult_esperado": 60.0,
+        "retorno_esperado": 600.0,
+        "explicacao": "Dezena 87 saiu no 1º prêmio (1587). Paga 60x o valor investido: R$ 10 vira R$ 600."
+    },
+    {
+        "id": "ex_dezena_cercado",
+        "titulo": "4. Dezena 87 do 1º ao 5º",
+        "tipo": "dezena",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "87",
+        "mult_esperado": 12.0,
+        "retorno_esperado": 120.0,
+        "explicacao": "Dividido por 5: 60 ÷ 5 = 12x. Como saiu no 1º prêmio, você leva 12x: R$ 10 vira R$ 120."
+    },
+    {
+        "id": "ex_centena_cabeca",
+        "titulo": "5. Centena 587 na Cabeça",
+        "tipo": "centena",
+        "posicao": "cabeca",
+        "valor": 10.0,
+        "aposta": "587",
+        "mult_esperado": 600.0,
+        "retorno_esperado": 6000.0,
+        "explicacao": "Centena 587 saiu no 1º prêmio (1587). Paga 600x: R$ 10 vira R$ 6.000."
+    },
+    {
+        "id": "ex_centena_cercado",
+        "titulo": "6. Centena 587 do 1º ao 5º",
+        "tipo": "centena",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "587",
+        "mult_esperado": 120.0,
+        "retorno_esperado": 1200.0,
+        "explicacao": "Dividido por 5: 600 ÷ 5 = 120x. R$ 10 vira R$ 1.200."
+    },
+    {
+        "id": "ex_milhar_cabeca",
+        "titulo": "7. Milhar 1587 na Cabeça",
+        "tipo": "milhar",
+        "posicao": "cabeca",
+        "valor": 10.0,
+        "aposta": "1587",
+        "mult_esperado": 4000.0,
+        "retorno_esperado": 40000.0,
+        "explicacao": "Milhar 1587 cravada no 1º prêmio! Paga 4.000x: R$ 10 vira R$ 40.000."
+    },
+    {
+        "id": "ex_milhar_cercado",
+        "titulo": "8. Milhar 1587 do 1º ao 5º",
+        "tipo": "milhar",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "1587",
+        "mult_esperado": 800.0,
+        "retorno_esperado": 8000.0,
+        "explicacao": "Dividido por 5: 4.000 ÷ 5 = 800x. R$ 10 vira R$ 8.000."
+    },
+    {
+        "id": "ex_duque_grupo",
+        "titulo": "9. Duque de Grupo Cavalo + Galo",
+        "tipo": "duque_grupo",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "Cavalo e Galo",
+        "mult_esperado": 18.5,
+        "retorno_esperado": 185.0,
+        "explicacao": "Cavalo saiu no 2º prêmio (2544) e Galo no 3º (3152). Paga 18,5x: R$ 10 vira R$ 185."
+    },
+    {
+        "id": "ex_duque_dezena",
+        "titulo": "10. Duque de Dezenas 44 + 23",
+        "tipo": "duque_dezena",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "44 e 23",
+        "mult_esperado": 300.0,
+        "retorno_esperado": 3000.0,
+        "explicacao": "Dezena 44 no 2º prêmio e 23 no 5º prêmio. Paga 300x: R$ 10 vira R$ 3.000."
+    },
+    {
+        "id": "ex_terno_grupo",
+        "titulo": "11. Terno de Grupo Cabra + Pavão + Tigre",
+        "tipo": "terno_grupo",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "Cabra, Tigre e Pavão",
+        "mult_esperado": 130.0,
+        "retorno_esperado": 1300.0,
+        "explicacao": "Tigre (1º), Pavão (4º) e Cabra (5º). Todos os 3 saíram! Paga 130x: R$ 10 vira R$ 1.300."
+    },
+    {
+        "id": "ex_terno_dezena",
+        "titulo": "12. Terno de Dezenas 87 + 52 + 75",
+        "tipo": "terno_dezena",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "87, 52 e 75",
+        "mult_esperado": 3000.0,
+        "retorno_esperado": 30000.0,
+        "explicacao": "Dezenas 87 (1º), 52 (3º) e 75 (4º). As 3 foram sorteadas! Paga 3.000x: R$ 10 vira R$ 30.000."
+    }
+]
+
+def normalizar_tipo_aposta(tipo: str) -> str:
+    t = str(tipo or "").strip().lower()
+    t = t.replace(" ", "_").replace("-", "_")
+    if t in ["duplo_grupo", "dupla_grupo", "duque_de_grupo", "duplo_de_grupo", "duque_grupo"]:
+        return "duque_grupo"
+    if t in ["duplo_dezena", "dupla_dezena", "duque_de_dezena", "duplo_de_dezena", "duque_dezena"]:
+        return "duque_dezena"
+    if t in ["terno_de_grupo", "terno_grupo"]:
+        return "terno_grupo"
+    if t in ["terno_de_dezena", "terno_dezena"]:
+        return "terno_dezena"
+    return t
+
+def resolver_grupo_bicho(item: str) -> Optional[Dict[str, Any]]:
+    s = str(item or "").strip().lower()
+    if s.isdigit():
+        val = int(s)
+        if 1 <= val <= 25:
+            info = BICHO_INFO[val]
+            return {"grupo": f"{val:02d}", "nome": info["nome"], "icone": info["icone"], "dezenas": info["dezenas"]}
+        elif 0 <= val <= 99:
+            g = 25 if val == 0 else ((val - 1) // 4) + 1
+            info = BICHO_INFO[g]
+            return {"grupo": f"{g:02d}", "nome": info["nome"], "icone": info["icone"], "dezenas": info["dezenas"]}
+    
+    for g, info in BICHO_INFO.items():
+        if info["nome"].lower() == s or s in info["nome"].lower():
+            return {"grupo": f"{g:02d}", "nome": info["nome"], "icone": info["icone"], "dezenas": info["dezenas"]}
+    return None
+
+def parsear_combinacoes_aposta(raw_items: List[str], tamanho: int) -> List[List[str]]:
+    resultado = []
+    elementos_puros = []
+    for item in raw_items:
+        partes = [p.strip() for p in re.split(r'[,;\-\/eE\s\+]+', str(item)) if p.strip()]
+        if len(partes) == tamanho:
+            resultado.append(partes)
+        elif len(partes) > tamanho:
+            for i in range(0, len(partes) - tamanho + 1, tamanho):
+                resultado.append(partes[i:i+tamanho])
+        else:
+            elementos_puros.extend(partes)
+            
+    if elementos_puros:
+        for i in range(0, len(elementos_puros) - tamanho + 1, tamanho):
+            resultado.append(elementos_puros[i:i+tamanho])
+            
+    return resultado
+
+def conferir_apostas_zaza(
+    tipo: str,
+    posicao: str = "cabeca",
+    valor_aposta: float = 1.0,
+    apostas: List[str] = None,
+    sorteio_alvo: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    tipo_norm = normalizar_tipo_aposta(tipo)
+    if tipo_norm not in REGRAS_ZAZA:
+        raise ValueError(f"Modalidade desconhecida: {tipo}")
+        
+    regra = REGRAS_ZAZA[tipo_norm]
+    sorteio = sorteio_alvo or SORTEIO_EXEMPLO_AULA
+    
+    premios_5 = []
+    for idx, p in enumerate(sorteio[:5]):
+        milhar_str = str(p.get("milhar", "")).zfill(4)[-4:]
+        centena_str = p.get("centena") or milhar_str[-3:]
+        dezena_str = p.get("dezena") or milhar_str[-2:]
+        dez_val = int(dezena_str)
+        g_calc = 25 if dez_val == 0 else ((dez_val - 1) // 4) + 1
+        grupo_str = p.get("grupo") or f"{g_calc:02d}"
+        g_int = int(grupo_str)
+        bicho_str = p.get("bicho") or BICHO_INFO.get(g_int, {}).get("nome", "Desconhecido")
+        icone_str = p.get("icone") or BICHO_INFO.get(g_int, {}).get("icone", "🎲")
+        
+        premios_5.append({
+            "premio": p.get("premio", f"{idx+1}º Prêmio"),
+            "premio_num": idx + 1,
+            "milhar": milhar_str,
+            "centena": centena_str,
+            "dezena": dezena_str,
+            "grupo": grupo_str,
+            "bicho": bicho_str,
+            "icone": icone_str
+        })
+        
+    cabeca = premios_5[0]
+    posicao_norm = "cercado" if not regra["suporta_cabeca"] else ("cabeca" if str(posicao).lower() in ["cabeca", "1", "1o", "1º"] else "cercado")
+    
+    apostas_raw = [str(a).strip() for a in (apostas or []) if str(a).strip()]
+    if not apostas_raw:
+        apostas_raw = [regra["exemplo_aula"]]
+        
+    detalhes_apostas = []
+    total_apostas = 0
+    total_acertos = 0
+    premio_total = 0.0
+    
+    if regra["qtd_elementos"] == 1:
+        for aposta_str in apostas_raw:
+            total_apostas += 1
+            hit = False
+            premios_atingidos = []
+            mult = 0.0
+            info_aposta = aposta_str
+            
+            if tipo_norm == "grupo":
+                res_bicho = resolver_grupo_bicho(aposta_str)
+                if not res_bicho:
+                    detalhes_apostas.append({
+                        "aposta": aposta_str, "valida": False, "acertou": False,
+                        "descricao": "Bicho ou grupo inválido", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"{res_bicho['icone']} {res_bicho['nome']} (Grupo {res_bicho['grupo']})"
+                g_target = res_bicho["grupo"]
+                
+                if posicao_norm == "cabeca":
+                    if cabeca["grupo"] == g_target:
+                        hit = True
+                        mult = regra["mult_cabeca"]
+                        premios_atingidos.append(f"{cabeca['premio']} (Cabeça)")
+                else:
+                    matches = [p for p in premios_5 if p["grupo"] == g_target]
+                    if matches:
+                        hit = True
+                        mult = regra["mult_cercado"] * len(matches)
+                        premios_atingidos.extend([f"{m['premio']} ({m['milhar']})" for m in matches])
+                        
+            elif tipo_norm == "dezena":
+                d_str = aposta_str.zfill(2)[-2:]
+                info_aposta = f"Dezena {d_str}"
+                if posicao_norm == "cabeca":
+                    if cabeca["dezena"] == d_str:
+                        hit = True
+                        mult = regra["mult_cabeca"]
+                        premios_atingidos.append(f"{cabeca['premio']} (Cabeça)")
+                else:
+                    matches = [p for p in premios_5 if p["dezena"] == d_str]
+                    if matches:
+                        hit = True
+                        mult = regra["mult_cercado"] * len(matches)
+                        premios_atingidos.extend([f"{m['premio']} ({m['milhar']})" for m in matches])
+                        
+            elif tipo_norm == "centena":
+                c_str = aposta_str.zfill(3)[-3:]
+                info_aposta = f"Centena {c_str}"
+                if posicao_norm == "cabeca":
+                    if cabeca["centena"] == c_str:
+                        hit = True
+                        mult = regra["mult_cabeca"]
+                        premios_atingidos.append(f"{cabeca['premio']} (Cabeça)")
+                else:
+                    matches = [p for p in premios_5 if p["centena"] == c_str]
+                    if matches:
+                        hit = True
+                        mult = regra["mult_cercado"] * len(matches)
+                        premios_atingidos.extend([f"{m['premio']} ({m['milhar']})" for m in matches])
+                        
+            elif tipo_norm == "milhar":
+                m_str = aposta_str.zfill(4)[-4:]
+                info_aposta = f"Milhar {m_str}"
+                if posicao_norm == "cabeca":
+                    if cabeca["milhar"] == m_str:
+                        hit = True
+                        mult = regra["mult_cabeca"]
+                        premios_atingidos.append(f"{cabeca['premio']} (Cabeça)")
+                else:
+                    matches = [p for p in premios_5 if p["milhar"] == m_str]
+                    if matches:
+                        hit = True
+                        mult = regra["mult_cercado"] * len(matches)
+                        premios_atingidos.extend([f"{m['premio']} ({m['milhar']})" for m in matches])
+                        
+            retorno_item = valor_aposta * mult if hit else 0.0
+            if hit:
+                total_acertos += 1
+                premio_total += retorno_item
+                
+            detalhes_apostas.append({
+                "aposta": aposta_str,
+                "info_aposta": info_aposta,
+                "valida": True,
+                "acertou": hit,
+                "premios_atingidos": premios_atingidos,
+                "multiplicador": mult,
+                "valor_apostado": valor_aposta,
+                "retorno": retorno_item
+            })
+            
+    else:
+        comb_list = parsear_combinacoes_aposta(apostas_raw, regra["qtd_elementos"])
+        for comb in comb_list:
+            total_apostas += 1
+            hit = False
+            premios_atingidos = []
+            mult = 0.0
+            info_aposta = " + ".join(comb)
+            
+            if tipo_norm == "duque_grupo":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                if not b1 or not b2:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"{b1['icone']} {b1['nome']} (G{b1['grupo']}) + {b2['icone']} {b2['nome']} (G{b2['grupo']})"
+                g_sorteados = [p["grupo"] for p in premios_5]
+                if b1["grupo"] in g_sorteados and b2["grupo"] in g_sorteados:
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p1 = next(p for p in premios_5 if p["grupo"] == b1["grupo"])
+                    p2 = next(p for p in premios_5 if p["grupo"] == b2["grupo"])
+                    premios_atingidos = [f"{p1['premio']} ({p1['bicho']})", f"{p2['premio']} ({p2['bicho']})"]
+                    
+            elif tipo_norm == "duque_dezena":
+                d1 = comb[0].zfill(2)[-2:]
+                d2 = comb[1].zfill(2)[-2:]
+                info_aposta = f"Dezenas {d1} + {d2}"
+                dezenas_sorteadas = [p["dezena"] for p in premios_5]
+                if d1 in dezenas_sorteadas and d2 in dezenas_sorteadas:
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p1 = next(p for p in premios_5 if p["dezena"] == d1)
+                    p2 = next(p for p in premios_5 if p["dezena"] == d2)
+                    premios_atingidos = [f"{p1['premio']} (Dezena {d1})", f"{p2['premio']} (Dezena {d2})"]
+                    
+            elif tipo_norm == "terno_grupo":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                b3 = resolver_grupo_bicho(comb[2])
+                if not b1 or not b2 or not b3:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"{b1['icone']} {b1['nome']} + {b2['icone']} {b2['nome']} + {b3['icone']} {b3['nome']}"
+                g_sorteados = [p["grupo"] for p in premios_5]
+                if b1["grupo"] in g_sorteados and b2["grupo"] in g_sorteados and b3["grupo"] in g_sorteados:
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p1 = next(p for p in premios_5 if p["grupo"] == b1["grupo"])
+                    p2 = next(p for p in premios_5 if p["grupo"] == b2["grupo"])
+                    p3 = next(p for p in premios_5 if p["grupo"] == b3["grupo"])
+                    premios_atingidos = [f"{p1['premio']} ({p1['bicho']})", f"{p2['premio']} ({p2['bicho']})", f"{p3['premio']} ({p3['bicho']})"]
+                    
+            elif tipo_norm == "terno_dezena":
+                d1 = comb[0].zfill(2)[-2:]
+                d2 = comb[1].zfill(2)[-2:]
+                d3 = comb[2].zfill(2)[-2:]
+                info_aposta = f"Dezenas {d1} + {d2} + {d3}"
+                dezenas_sorteadas = [p["dezena"] for p in premios_5]
+                if d1 in dezenas_sorteadas and d2 in dezenas_sorteadas and d3 in dezenas_sorteadas:
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p1 = next(p for p in premios_5 if p["dezena"] == d1)
+                    p2 = next(p for p in premios_5 if p["dezena"] == d2)
+                    p3 = next(p for p in premios_5 if p["dezena"] == d3)
+                    premios_atingidos = [f"{p1['premio']} (Dezena {d1})", f"{p2['premio']} (Dezena {d2})", f"{p3['premio']} (Dezena {d3})"]
+                    
+            retorno_item = valor_aposta * mult if hit else 0.0
+            if hit:
+                total_acertos += 1
+                premio_total += retorno_item
+                
+            detalhes_apostas.append({
+                "aposta": " + ".join(comb),
+                "info_aposta": info_aposta,
+                "valida": True,
+                "acertou": hit,
+                "premios_atingidos": premios_atingidos,
+                "multiplicador": mult,
+                "valor_apostado": valor_aposta,
+                "retorno": retorno_item
+            })
+            
+    investimento_total = total_apostas * valor_aposta
+    lucro_liquido = premio_total - investimento_total
+    
+    return {
+        "status": "success",
+        "tipo": tipo_norm,
+        "nome_modalidade": regra["nome"],
+        "posicao": posicao_norm,
+        "sorteio": premios_5,
+        "total_apostas": total_apostas,
+        "total_acertos": total_acertos,
+        "investimento_total": investimento_total,
+        "premio_total": premio_total,
+        "lucro_liquido": lucro_liquido,
+        "detalhes": detalhes_apostas
+    }
+
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -381,14 +917,14 @@ def conferir_aposta_ciclo(id_aposta: int, id_sorteio_alvo: Optional[int] = None)
                     hit = True
                     round_count_c += 1
                     desc_premio = "1º Prêmio (Cabeça) - CENTENA SECA!"
-                    val = 578.00
+                    val = 600.00
                 else:
                     for r in premios_sorteio[1:5]:
                         if aposta == r["centena"]:
                             hit = True
                             round_count_c += 1
                             desc_premio = f"{r['premio']} (Cercado) - Centena"
-                            val = 100.00
+                            val = 120.00
                             break
                 # Se não bateu centena seca mas bateu a dezena
                 if not hit and len(aposta) >= 2 and aposta[-2:] == cabeca["dezena"]:
@@ -400,7 +936,7 @@ def conferir_aposta_ciclo(id_aposta: int, id_sorteio_alvo: Optional[int] = None)
                     hit = True
                     round_count_m += 1
                     desc_premio = "1º Prêmio (Cabeça) - MILHAR SECA!"
-                    val = 4578.00
+                    val = 4000.00
                 else:
                     for r in premios_sorteio[1:5]:
                         if aposta == r["milhar"]:
@@ -422,6 +958,59 @@ def conferir_aposta_ciclo(id_aposta: int, id_sorteio_alvo: Optional[int] = None)
                     round_count_g += 1
                     desc_premio = "1º Prêmio (Cabeça) - GRUPO!"
                     val = 18.00
+                else:
+                    for r in premios_sorteio[1:5]:
+                        if g_str == r["grupo"] or aposta.lower() == r["bicho"].lower():
+                            hit = True
+                            round_count_g += 1
+                            desc_premio = f"{r['premio']} (Cercado) - GRUPO"
+                            val = 3.60
+                            break
+            elif tipo in ["duque_grupo", "duplo_grupo"]:
+                partes = [p.strip() for p in re.split(r'[,;\-\/eE\s\+]+', str(aposta)) if p.strip()]
+                if len(partes) >= 2:
+                    b1 = resolver_grupo_bicho(partes[0])
+                    b2 = resolver_grupo_bicho(partes[1])
+                    if b1 and b2:
+                        grupos_sorteio = [p["grupo"] for p in premios_sorteio[:5]]
+                        if b1["grupo"] in grupos_sorteio and b2["grupo"] in grupos_sorteio:
+                            hit = True
+                            round_count_g += 2
+                            desc_premio = f"Duque de Grupo! ({b1['nome']} e {b2['nome']})"
+                            val = 18.50
+            elif tipo in ["duque_dezena", "duplo_dezena"]:
+                partes = [p.strip().zfill(2)[-2:] for p in re.split(r'[,;\-\/eE\s\+]+', str(aposta)) if p.strip()]
+                if len(partes) >= 2:
+                    d1, d2 = partes[0], partes[1]
+                    dezenas_sorteio = [p["dezena"] for p in premios_sorteio[:5]]
+                    if d1 in dezenas_sorteio and d2 in dezenas_sorteio:
+                        hit = True
+                        round_count_d += 2
+                        desc_premio = f"Duque de Dezenas! ({d1} e {d2})"
+                        val = 300.00
+            elif tipo == "terno_grupo":
+                partes = [p.strip() for p in re.split(r'[,;\-\/eE\s\+]+', str(aposta)) if p.strip()]
+                if len(partes) >= 3:
+                    b1 = resolver_grupo_bicho(partes[0])
+                    b2 = resolver_grupo_bicho(partes[1])
+                    b3 = resolver_grupo_bicho(partes[2])
+                    if b1 and b2 and b3:
+                        grupos_sorteio = [p["grupo"] for p in premios_sorteio[:5]]
+                        if b1["grupo"] in grupos_sorteio and b2["grupo"] in grupos_sorteio and b3["grupo"] in grupos_sorteio:
+                            hit = True
+                            round_count_g += 3
+                            desc_premio = f"Terno de Grupo! ({b1['nome']}, {b2['nome']} e {b3['nome']})"
+                            val = 130.00
+            elif tipo == "terno_dezena":
+                partes = [p.strip().zfill(2)[-2:] for p in re.split(r'[,;\-\/eE\s\+]+', str(aposta)) if p.strip()]
+                if len(partes) >= 3:
+                    d1, d2, d3 = partes[0], partes[1], partes[2]
+                    dezenas_sorteio = [p["dezena"] for p in premios_sorteio[:5]]
+                    if d1 in dezenas_sorteio and d2 in dezenas_sorteio and d3 in dezenas_sorteio:
+                        hit = True
+                        round_count_d += 3
+                        desc_premio = f"Terno de Dezenas! ({d1}, {d2} e {d3})"
+                        val = 3000.00
                     
             if hit:
                 hits_rodada.append({

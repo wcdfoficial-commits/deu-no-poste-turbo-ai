@@ -5,12 +5,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
 import os
+import secrets
 
 from database import (
     get_stats, get_latest_draw, query_results, BICHO_INFO, get_connection,
     adicionar_aposta_fila, listar_fila_apostas, remover_aposta_fila,
     obter_sorteios_posteriores, conferir_aposta_ciclo, obter_estatisticas_ciclos,
-    obter_metricas_assertividade_longo_prazo
+    obter_metricas_assertividade_longo_prazo,
+    init_usuarios_table, cadastrar_usuario, autenticar_usuario
 )
 from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
@@ -20,6 +22,7 @@ app = FastAPI(title="DEU NO POSTE TURBO AI", version="2.0")
 
 @app.on_event("startup")
 def startup_event():
+    init_usuarios_table()
     auto_pilot.start()
 
 class NoCacheMiddleware(BaseHTTPMiddleware):
@@ -46,22 +49,45 @@ class ConferirRequest(BaseModel):
     id_sorteio: Optional[int] = None
 
 class LoginRequest(BaseModel):
-    username: Optional[str] = "admin"
+    username: str
     password: str
 
-ADMIN_PASSWORD = "@As975109"
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
 
 @app.post("/api/auth/login")
 def api_auth_login(req: LoginRequest):
-    if req.password.strip() == ADMIN_PASSWORD:
+    user = autenticar_usuario(req.username, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuário/e-mail ou senha incorretos.")
+    
+    token = f"tok_{user['role']}_{user['username']}_{secrets.token_hex(8)}"
+    return {
+        "status": "success",
+        "message": f"Bem-vindo(a), {user['username']}!",
+        "token": token,
+        "user": user["username"],
+        "role": user["role"],
+        "plan": user.get("plan", "vip")
+    }
+
+@app.post("/api/auth/register")
+def api_auth_register(req: RegisterRequest):
+    try:
+        user = cadastrar_usuario(req.username, req.email, req.password)
+        token = f"tok_user_{user['username']}_{secrets.token_hex(8)}"
         return {
             "status": "success",
-            "message": "Autenticado com sucesso",
-            "token": "tok_admin_deu_no_poste_pro_2026",
-            "user": req.username or "Admin",
-            "role": "admin"
+            "message": "Conta criada com sucesso! Acesso liberado ao Terminal.",
+            "token": token,
+            "user": user["username"],
+            "role": user["role"],
+            "plan": user["plan"]
         }
-    raise HTTPException(status_code=401, detail="Senha incorreta! Acesso não autorizado.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/status")
 def api_status():

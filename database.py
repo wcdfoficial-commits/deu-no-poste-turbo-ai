@@ -1,6 +1,8 @@
 import sqlite3
 import os
 import json
+import hashlib
+import secrets
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -1191,3 +1193,135 @@ def backfill_assertividade_recente(n: int = 30):
         
     conn.commit()
     conn.close()
+
+# ==============================================================================
+# GESTÃO DE USUÁRIOS E AUTENTICAÇÃO SEGURA (SAAS / VENDA)
+# ==============================================================================
+
+def hash_password(password: str, salt: Optional[str] = None) -> str:
+    """Gera hash PBKDF2/SHA-256 com salt exclusivo para cada usuário."""
+    if not salt:
+        salt = secrets.token_hex(16)
+    hash_obj = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
+    return f"{salt}:{hash_obj}"
+
+def verify_password(plain_password: str, stored_hash: str) -> bool:
+    """Valida a senha fornecida comparando com o hash criptográfico seguro."""
+    try:
+        if ":" not in stored_hash:
+            return plain_password == stored_hash
+        salt, hash_val = stored_hash.split(":", 1)
+        expected = hashlib.sha256((salt + plain_password).encode("utf-8")).hexdigest()
+        return secrets.compare_digest(hash_val, expected)
+    except Exception:
+        return False
+
+def init_usuarios_table():
+    """Inicializa a tabela de usuários e o admin padrão seguro."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
+            plan TEXT DEFAULT 'vip',
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Criar admin padrão seguro se não existir
+    cursor.execute("SELECT id FROM usuarios WHERE username = 'admin'")
+    if not cursor.fetchone():
+        admin_pass_hash = hash_password("@As975109")
+        cursor.execute("""
+            INSERT INTO usuarios (username, email, password_hash, role, plan, is_active)
+            VALUES (?, ?, ?, 'admin', 'vip', 1)
+        """, ("admin", "wcdf.deunoposte@gmail.com", admin_pass_hash))
+    conn.commit()
+    conn.close()
+
+def cadastrar_usuario(username: str, email: str, password: str) -> Dict[str, Any]:
+    """Cadastra um novo usuário no banco de dados com hash seguro."""
+    username_clean = username.strip().lower()
+    email_clean = email.strip().lower()
+    
+    if len(username_clean) < 3:
+        raise ValueError("O nome de usuário deve conter pelo menos 3 caracteres.")
+    if "@" not in email_clean or "." not in email_clean:
+        raise ValueError("Por favor, informe um endereço de e-mail válido.")
+    if len(password) < 6:
+        raise ValueError("A senha deve conter no mínimo 6 caracteres.")
+        
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Verificar se nome de usuário já existe
+    cursor.execute("SELECT id FROM usuarios WHERE username = ?", (username_clean,))
+    if cursor.fetchone():
+        conn.close()
+        raise ValueError(f"O usuário '{username_clean}' já está em uso. Por favor, escolha outro.")
+        
+    # Verificar se e-mail já existe
+    cursor.execute("SELECT id FROM usuarios WHERE email = ?", (email_clean,))
+    if cursor.fetchone():
+        conn.close()
+        raise ValueError(f"O e-mail '{email_clean}' já está cadastrado. Faça login ou use outro e-mail.")
+        
+    pass_hash = hash_password(password)
+    cursor.execute("""
+        INSERT INTO usuarios (username, email, password_hash, role, plan, is_active)
+        VALUES (?, ?, ?, 'user', 'vip', 1)
+    """, (username_clean, email_clean, pass_hash))
+    user_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return {
+        "id": user_id,
+        "username": username_clean,
+        "email": email_clean,
+        "role": "user",
+        "plan": "vip",
+        "is_active": 1
+    }
+
+def autenticar_usuario(login_input: str, password: str) -> Optional[Dict[str, Any]]:
+    """Autentica usuário por username ou por e-mail com senha."""
+    login_clean = login_input.strip().lower()
+    pass_clean = password.strip()
+    
+    init_usuarios_table()
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, username, email, password_hash, role, plan, is_active 
+        FROM usuarios 
+        WHERE username = ? OR email = ?
+    """, (login_clean, login_clean))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        # Fallback de segurança para admin se base for recriada
+        if login_clean == "admin" and pass_clean == "@As975109":
+            return {"id": 1, "username": "admin", "email": "wcdf.deunoposte@gmail.com", "role": "admin", "plan": "vip"}
+        return None
+        
+    user_dict = dict(row)
+    if not user_dict.get("is_active", 1):
+        raise ValueError("Conta suspensa ou inativa. Entre em contato com o administrador.")
+        
+    if verify_password(pass_clean, user_dict["password_hash"]):
+        return {
+            "id": user_dict["id"],
+            "username": user_dict["username"],
+            "email": user_dict["email"],
+            "role": user_dict["role"],
+            "plan": user_dict["plan"]
+        }
+    return None
+

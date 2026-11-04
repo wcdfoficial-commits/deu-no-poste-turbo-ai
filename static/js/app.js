@@ -33,18 +33,44 @@ function checkAuth() {
     if (overlay) {
       overlay.classList.remove("hidden");
       overlay.style.display = "flex";
-      const passInput = document.getElementById("login-password");
-      if (passInput) passInput.focus();
+      const loginUser = document.getElementById("login-username");
+      if (loginUser) loginUser.focus();
     }
   }
 }
 
-function preencherSenhaAdmin() {
-  const passEl = document.getElementById("login-password");
-  if (passEl) {
-    passEl.value = "@As975109";
-    showToast("Senha do Administrador inserida!");
+function alternarAbaAuth(aba) {
+  const tabLogin = document.getElementById("tab-btn-login");
+  const tabReg = document.getElementById("tab-btn-register");
+  const formLogin = document.getElementById("login-form");
+  const formReg = document.getElementById("register-form");
+  const msgBox = document.getElementById("auth-msg-box");
+
+  if (msgBox) {
+    msgBox.classList.remove("show", "success");
   }
+
+  if (aba === "register") {
+    if (tabLogin) tabLogin.classList.remove("active");
+    if (tabReg) tabReg.classList.add("active");
+    if (formLogin) formLogin.style.display = "none";
+    if (formReg) formReg.style.display = "flex";
+    const regUser = document.getElementById("reg-username");
+    if (regUser) regUser.focus();
+  } else {
+    if (tabReg) tabReg.classList.remove("active");
+    if (tabLogin) tabLogin.classList.add("active");
+    if (formReg) formReg.style.display = "none";
+    if (formLogin) formLogin.style.display = "flex";
+    const loginUser = document.getElementById("login-username");
+    if (loginUser) loginUser.focus();
+  }
+}
+
+function toggleSenhaVisibilidade(inputId = "login-password") {
+  const passEl = document.getElementById(inputId);
+  if (!passEl) return;
+  passEl.type = passEl.type === "password" ? "text" : "password";
 }
 
 async function realizarLogin(event) {
@@ -52,25 +78,28 @@ async function realizarLogin(event) {
   
   const userEl = document.getElementById("login-username");
   const passEl = document.getElementById("login-password");
-  const errorBox = document.getElementById("login-error-msg");
-  const errorText = document.getElementById("login-error-text");
+  const msgBox = document.getElementById("auth-msg-box");
+  const msgText = document.getElementById("auth-msg-text");
+  const msgIcon = document.getElementById("auth-msg-icon");
   const loginCard = document.getElementById("login-card");
   const btnSubmit = document.getElementById("btn-submit-login");
 
-  const username = userEl ? userEl.value.trim() : "admin";
+  const username = userEl ? userEl.value.trim() : "";
   const password = passEl ? passEl.value.trim() : "";
 
-  if (!password) {
-    if (errorBox) {
-      errorText.textContent = "Por favor, digite a senha de acesso.";
-      errorBox.classList.add("show");
+  if (!username || !password) {
+    if (msgBox) {
+      if (msgText) msgText.textContent = "Por favor, digite seu usuário/e-mail e a senha.";
+      if (msgIcon) msgIcon.textContent = "⚠️";
+      msgBox.classList.remove("success");
+      msgBox.classList.add("show");
     }
     return;
   }
 
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<span>⏳ Autenticando...</span>`;
+    btnSubmit.innerHTML = `<span>⏳ Entrando...</span>`;
   }
 
   try {
@@ -89,7 +118,7 @@ async function realizarLogin(event) {
       const userDisplay = document.getElementById("user-name-display");
       if (userDisplay) userDisplay.textContent = data.user;
 
-      if (errorBox) errorBox.classList.remove("show");
+      if (msgBox) msgBox.classList.remove("show");
 
       const overlay = document.getElementById("login-overlay");
       if (overlay) {
@@ -97,22 +126,23 @@ async function realizarLogin(event) {
         overlay.style.display = "none";
       }
 
-      showToast(`Bem-vindo, ${data.user}! Terminal liberado.`);
+      showToast(`Bem-vindo(a), ${data.user}! Terminal analítico liberado.`);
       
       if (!isInitialized) {
         isInitialized = true;
         initApp();
       }
     } else {
-      // Erro de autenticação
       if (loginCard) {
         loginCard.classList.remove("shake");
-        void loginCard.offsetWidth; // trigger reflow
+        void loginCard.offsetWidth;
         loginCard.classList.add("shake");
       }
-      if (errorBox) {
-        errorText.textContent = data.detail || "Senha incorreta! Acesso não autorizado.";
-        errorBox.classList.add("show");
+      if (msgBox) {
+        if (msgText) msgText.textContent = data.detail || "Credenciais incorretas! Acesso não autorizado.";
+        if (msgIcon) msgIcon.textContent = "⚠️";
+        msgBox.classList.remove("success");
+        msgBox.classList.add("show");
       }
       if (passEl) {
         passEl.value = "";
@@ -120,30 +150,125 @@ async function realizarLogin(event) {
       }
     }
   } catch (e) {
-    if (errorBox) {
-      errorText.textContent = "Erro de conexão com o servidor de autenticação.";
-      errorBox.classList.add("show");
+    if (msgBox) {
+      if (msgText) msgText.textContent = "Falha ao conectar com o servidor.";
+      if (msgIcon) msgIcon.textContent = "⚠️";
+      msgBox.classList.remove("success");
+      msgBox.classList.add("show");
     }
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
-      btnSubmit.innerHTML = `<span>⚡ Acessar Terminal Analítico</span>`;
+      btnSubmit.innerHTML = `<span>⚡ Entrar no Terminal</span>`;
     }
   }
 }
 
-function toggleSenhaVisibilidade() {
-  const passEl = document.getElementById("login-password");
-  if (!passEl) return;
-  passEl.type = passEl.type === "password" ? "text" : "password";
+async function realizarCadastro(event) {
+  if (event) event.preventDefault();
+
+  const userEl = document.getElementById("reg-username");
+  const emailEl = document.getElementById("reg-email");
+  const passEl = document.getElementById("reg-password");
+  const msgBox = document.getElementById("auth-msg-box");
+  const msgText = document.getElementById("auth-msg-text");
+  const msgIcon = document.getElementById("auth-msg-icon");
+  const loginCard = document.getElementById("login-card");
+  const btnSubmit = document.getElementById("btn-submit-reg");
+
+  const username = userEl ? userEl.value.trim() : "";
+  const email = emailEl ? emailEl.value.trim() : "";
+  const password = passEl ? passEl.value.trim() : "";
+
+  if (!username || !email || !password) {
+    if (msgBox) {
+      if (msgText) msgText.textContent = "Por favor, preencha todos os campos do cadastro.";
+      if (msgIcon) msgIcon.textContent = "⚠️";
+      msgBox.classList.remove("success");
+      msgBox.classList.add("show");
+    }
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `<span>⏳ Criando sua conta...</span>`;
+  }
+
+  try {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.status === "success") {
+      localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      localStorage.setItem(AUTH_USER_KEY, data.user);
+
+      const userDisplay = document.getElementById("user-name-display");
+      if (userDisplay) userDisplay.textContent = data.user;
+
+      if (msgBox) {
+        if (msgText) msgText.textContent = data.message || "Conta criada com sucesso!";
+        if (msgIcon) msgIcon.textContent = "✅";
+        msgBox.classList.remove("show");
+        msgBox.classList.add("show", "success");
+      }
+
+      showToast(`Conta criada com sucesso! Bem-vindo(a), ${data.user}!`);
+
+      setTimeout(() => {
+        const overlay = document.getElementById("login-overlay");
+        if (overlay) {
+          overlay.classList.add("hidden");
+          overlay.style.display = "none";
+        }
+        if (!isInitialized) {
+          isInitialized = true;
+          initApp();
+        }
+      }, 700);
+    } else {
+      if (loginCard) {
+        loginCard.classList.remove("shake");
+        void loginCard.offsetWidth;
+        loginCard.classList.add("shake");
+      }
+      if (msgBox) {
+        if (msgText) msgText.textContent = data.detail || "Erro ao criar conta. Verifique os dados.";
+        if (msgIcon) msgIcon.textContent = "⚠️";
+        msgBox.classList.remove("success");
+        msgBox.classList.add("show");
+      }
+    }
+  } catch (e) {
+    if (msgBox) {
+      if (msgText) msgText.textContent = "Falha de conexão com o servidor ao cadastrar.";
+      if (msgIcon) msgIcon.textContent = "⚠️";
+      msgBox.classList.remove("success");
+      msgBox.classList.add("show");
+    }
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = `<span>✨ Cadastrar & Começar</span>`;
+    }
+  }
 }
 
 function fazerLogout() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
   
+  const userEl = document.getElementById("login-username");
   const passEl = document.getElementById("login-password");
+  if (userEl) userEl.value = "";
   if (passEl) passEl.value = "";
+  
+  alternarAbaAuth("login");
   
   const overlay = document.getElementById("login-overlay");
   if (overlay) {

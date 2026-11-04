@@ -134,20 +134,51 @@
       filter: brightness(1.1) !important;
       transform: translateY(-1px) !important;
     }
-    .btn-quick-fill {
-      background: rgba(56, 189, 248, 0.1) !important;
-      border: 1px dashed rgba(56, 189, 248, 0.4) !important;
-      color: #38bdf8 !important;
-      padding: 0.55rem !important;
-      border-radius: 8px !important;
-      font-size: 0.8rem !important;
-      font-weight: 600 !important;
-      cursor: pointer !important;
-      text-align: center !important;
-      transition: all 0.2s ease !important;
+    .auth-tabs {
+      display: flex !important;
+      gap: 0.5rem !important;
+      background: rgba(0, 0, 0, 0.4) !important;
+      padding: 0.3rem !important;
+      border-radius: 10px !important;
+      margin-bottom: 1.25rem !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
-    .btn-quick-fill:hover {
-      background: rgba(56, 189, 248, 0.2) !important;
+    .auth-tab-btn {
+      flex: 1 !important;
+      padding: 0.65rem 0.5rem !important;
+      border: none !important;
+      background: transparent !important;
+      color: #94a3b8 !important;
+      font-weight: 700 !important;
+      font-size: 0.82rem !important;
+      border-radius: 8px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0.4rem !important;
+    }
+    .auth-tab-btn.active {
+      background: rgba(56, 189, 248, 0.15) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.4) !important;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2) !important;
+    }
+    .auth-footer-link {
+      margin-top: 1.15rem !important;
+      text-align: center !important;
+      font-size: 0.82rem !important;
+      color: #94a3b8 !important;
+    }
+    .auth-footer-link a {
+      color: #38bdf8 !important;
+      font-weight: 700 !important;
+      text-decoration: underline !important;
+      cursor: pointer !important;
+    }
+    .auth-footer-link a:hover {
+      color: #7dd3fc !important;
     }
     .login-error {
       display: none;
@@ -162,6 +193,11 @@
     }
     .login-error.show {
       display: flex !important;
+    }
+    .login-error.success {
+      background: rgba(16, 185, 129, 0.15) !important;
+      border: 1px solid #10b981 !important;
+      color: #6ee7b7 !important;
     }
     /* Estilos inline críticos para Notação Progressiva e Fita */
     .badge-notacao {
@@ -230,47 +266,91 @@
 <body>
 
   <!-- ========================================================================
-       TELA DE LOGIN E AUTENTICAÇÃO SEGURA (PORTAL RESTRITO)
+       TELA DE LOGIN E CADASTRO SEGURO (PORTAL RESTRITO / SAAS)
        ======================================================================== -->
   <div id="login-overlay" class="login-overlay">
     <div class="login-card" id="login-card">
       <div class="login-header">
         <div class="login-badge">
-          <span>🛡️</span> Acesso Restrito ao Terminal
+          <span>🛡️</span> Portal de Acesso Inteligente
         </div>
         <h1 class="login-title">DEU NO POSTE <span>ANALYTICS</span></h1>
         <p class="login-subtitle">Inteligência Quantitativa & Filtros de Alta Assertividade</p>
       </div>
 
+      <!-- Abas de Navegação: Login vs Cadastro -->
+      <div class="auth-tabs">
+        <button type="button" id="tab-btn-login" class="auth-tab-btn active" onclick="alternarAbaAuth('login')">
+          <span>🔑</span> Acessar Conta
+        </button>
+        <button type="button" id="tab-btn-register" class="auth-tab-btn" onclick="alternarAbaAuth('register')">
+          <span>✨</span> Criar Nova Conta
+        </button>
+      </div>
+
+      <!-- Box de Mensagens de Erro ou Sucesso -->
+      <div id="auth-msg-box" class="login-error">
+        <span id="auth-msg-icon">⚠️</span>
+        <span id="auth-msg-text">Credenciais inválidas. Verifique os dados.</span>
+      </div>
+
+      <!-- FORMULÁRIO 1: LOGIN -->
       <form class="login-form" id="login-form" onsubmit="realizarLogin(event)">
         <div class="form-group">
-          <label for="login-username">Operador / Identificação</label>
+          <label for="login-username">Usuário ou E-mail</label>
           <div class="input-wrapper">
-            <input type="text" id="login-username" class="form-input" value="admin" placeholder="Identificação do operador" autocomplete="username" required>
+            <input type="text" id="login-username" class="form-input" placeholder="Seu usuário ou e-mail cadastrado" autocomplete="username" required>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="login-password">Chave de Segurança / Senha</label>
+          <label for="login-password">Senha de Acesso</label>
           <div class="input-wrapper" style="position: relative;">
-            <input type="password" id="login-password" class="form-input" value="@As975109" placeholder="Digite sua senha de acesso" autocomplete="current-password" required>
-            <button type="button" class="btn-toggle-pass" onclick="toggleSenhaVisibilidade()" title="Exibir/Ocultar Senha" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.1rem;">👁️</button>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-pass" onclick="toggleSenhaVisibilidade('login-password')" title="Exibir/Ocultar Senha" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.1rem;">👁️</button>
           </div>
-        </div>
-
-        <!-- Atalho Rápido para Admin -->
-        <button type="button" class="btn-quick-fill" onclick="preencherSenhaAdmin()">
-          🔑 Preencher Senha Admin (@As975109)
-        </button>
-
-        <div id="login-error-msg" class="login-error">
-          <span>⚠️</span>
-          <span id="login-error-text">Senha incorreta! Acesso não autorizado.</span>
         </div>
 
         <button type="submit" id="btn-submit-login" class="btn-login">
-          <span>⚡ Acessar Terminal Analítico</span>
+          <span>⚡ Entrar no Terminal</span>
         </button>
+
+        <div class="auth-footer-link">
+          Ainda não possui conta? <a href="javascript:void(0)" onclick="alternarAbaAuth('register')">Cadastre-se grátis</a>
+        </div>
+      </form>
+
+      <!-- FORMULÁRIO 2: CADASTRO DE NOVO USUÁRIO -->
+      <form class="login-form" id="register-form" onsubmit="realizarCadastro(event)" style="display: none;">
+        <div class="form-group">
+          <label for="reg-username">Nome de Usuário</label>
+          <div class="input-wrapper">
+            <input type="text" id="reg-username" class="form-input" placeholder="Ex: jogador_vip" autocomplete="username" required minlength="3">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Seu E-mail Principal</label>
+          <div class="input-wrapper">
+            <input type="email" id="reg-email" class="form-input" placeholder="Ex: seuemail@exemplo.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password">Criar Senha de Acesso</label>
+          <div class="input-wrapper" style="position: relative;">
+            <input type="password" id="reg-password" class="form-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required minlength="6">
+            <button type="button" class="btn-toggle-pass" onclick="toggleSenhaVisibilidade('reg-password')" title="Exibir/Ocultar Senha" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.1rem;">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-reg" class="btn-login" style="background: linear-gradient(135deg, #38bdf8, #0284c7) !important; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4) !important;">
+          <span>✨ Cadastrar & Começar</span>
+        </button>
+
+        <div class="auth-footer-link">
+          Já possui conta ativa? <a href="javascript:void(0)" onclick="alternarAbaAuth('login')">Fazer Login</a>
+        </div>
       </form>
     </div>
   </div>

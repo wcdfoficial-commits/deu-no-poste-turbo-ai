@@ -53,15 +53,27 @@ function alternarAbaAuth(aba) {
   if (aba === "register") {
     if (tabLogin) tabLogin.classList.remove("active");
     if (tabReg) tabReg.classList.add("active");
-    if (formLogin) formLogin.style.display = "none";
-    if (formReg) formReg.style.display = "flex";
+    if (formLogin) {
+      formLogin.classList.add("auth-form-hidden");
+      formLogin.style.display = "none";
+    }
+    if (formReg) {
+      formReg.classList.remove("auth-form-hidden");
+      formReg.style.display = "flex";
+    }
     const regUser = document.getElementById("reg-username");
     if (regUser) regUser.focus();
   } else {
     if (tabReg) tabReg.classList.remove("active");
     if (tabLogin) tabLogin.classList.add("active");
-    if (formReg) formReg.style.display = "none";
-    if (formLogin) formLogin.style.display = "flex";
+    if (formReg) {
+      formReg.classList.add("auth-form-hidden");
+      formReg.style.display = "none";
+    }
+    if (formLogin) {
+      formLogin.classList.remove("auth-form-hidden");
+      formLogin.style.display = "flex";
+    }
     const loginUser = document.getElementById("login-username");
     if (loginUser) loginUser.focus();
   }

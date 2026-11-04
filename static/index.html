@@ -6,7 +6,7 @@
   <title>DEU NO POSTE ANALYTICS PRO - Plataforma Quantitativa</title>
   
   <!-- CSS Principal com Cache-Buster -->
-  <link rel="stylesheet" href="/css/style.css?v=3.1">
+  <link rel="stylesheet" href="/css/style.css?v=3.2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
   <!-- Estilos Críticos Injetados (Garante Renderização Perfeita Mesmo Sem Cache) -->
@@ -85,9 +85,13 @@
       margin-bottom: 1.5rem !important;
     }
     .login-form {
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 1.15rem !important;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+    }
+    .login-form.auth-form-hidden,
+    .auth-form-hidden {
+      display: none !important;
     }
     .form-group label {
       font-size: 0.78rem !important;
@@ -321,7 +325,7 @@
       </form>
 
       <!-- FORMULÁRIO 2: CADASTRO DE NOVO USUÁRIO -->
-      <form class="login-form" id="register-form" onsubmit="realizarCadastro(event)" style="display: none;">
+      <form class="login-form auth-form-hidden" id="register-form" onsubmit="realizarCadastro(event)">
         <div class="form-group">
           <label for="reg-username">Nome de Usuário</label>
           <div class="input-wrapper">
@@ -958,6 +962,6 @@
     <span id="toast-msg">Mensagem</span>
   </div>
 
-  <script src="/js/app.js?v=3.1"></script>
+  <script src="/js/app.js?v=3.2"></script>
 </body>
 </html>

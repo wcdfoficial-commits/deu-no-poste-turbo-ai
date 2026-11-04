@@ -86,7 +86,7 @@ function toggleSenhaVisibilidade(inputId = "login-password") {
 }
 
 async function realizarLogin(event) {
-  if (event) event.preventDefault();
+  if (event) { event.preventDefault(); event.stopPropagation(); }
   
   const userEl = document.getElementById("login-username");
   const passEl = document.getElementById("login-password");
@@ -1911,8 +1911,7 @@ async function executarConferenciaZaza() {
     return;
   }
 
-  const apostas = rawText.split(/[
-;]+/).map(a => a.trim()).filter(a => a.length > 0);
+  const apostas = rawText.split(/[\n,;]+/).map(a => a.trim()).filter(a => a.length > 0);
 
   if (resDiv) {
     resDiv.style.display = "block";

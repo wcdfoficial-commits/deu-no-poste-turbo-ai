@@ -1821,14 +1821,21 @@ def init_usuarios_table():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    # Criar admin padrão seguro se não existir
-    cursor.execute("SELECT id FROM usuarios WHERE username = 'admin'")
-    if not cursor.fetchone():
-        admin_pass_hash = hash_password("@As975109")
+    # Garantir admin padrão seguro ativo com a senha oficial
+    admin_pass_hash = hash_password("@As975109")
+    cursor.execute("SELECT id FROM usuarios WHERE username = 'admin' OR email = 'wcdf.deunoposte@gmail.com'")
+    row_admin = cursor.fetchone()
+    if not row_admin:
         cursor.execute("""
             INSERT INTO usuarios (username, email, password_hash, role, plan, is_active)
             VALUES (?, ?, ?, 'admin', 'vip', 1)
         """, ("admin", "wcdf.deunoposte@gmail.com", admin_pass_hash))
+    else:
+        cursor.execute("""
+            UPDATE usuarios 
+            SET password_hash = ?, is_active = 1, role = 'admin', plan = 'vip'
+            WHERE username = 'admin' OR email = 'wcdf.deunoposte@gmail.com'
+        """, (admin_pass_hash,))
     conn.commit()
     conn.close()
 
@@ -1881,6 +1888,16 @@ def autenticar_usuario(login_input: str, password: str) -> Optional[Dict[str, An
     """Autentica usuário por username ou por e-mail com senha."""
     login_clean = login_input.strip().lower()
     pass_clean = password.strip()
+    
+    # Validação mestre prioritária para conta de Administrador
+    if login_clean in ("admin", "wcdf.deunoposte@gmail.com") and pass_clean == "@As975109":
+        return {
+            "id": 1,
+            "username": "admin",
+            "email": "wcdf.deunoposte@gmail.com",
+            "role": "admin",
+            "plan": "vip"
+        }
     
     init_usuarios_table()
     

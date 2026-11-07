@@ -6,7 +6,7 @@
   <title>DEU NO POSTE ANALYTICS PRO - Plataforma Quantitativa</title>
   
   <!-- CSS Principal com Cache-Buster -->
-  <link rel="stylesheet" href="/css/style.css?v=4.0">
+  <link rel="stylesheet" href="/css/style.css?v=4.1">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
   <!-- Estilos Críticos Injetados (Garante Renderização Perfeita Mesmo Sem Cache) -->
@@ -687,12 +687,25 @@
             <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
               Quantos Cartões Deseja Formar? (Top-K)
             </label>
+            <!-- Origem da Grade (PPT vs Dinâmica da Última Rodada) -->
+            <div style="margin-bottom: 1.1rem;">
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                Origem da Matriz da Grade 3x3
+              </label>
+              <select id="grade3x3-select-origem" class="filter-select" onchange="trocarOrigemGrade3x3()" style="width: 100%;">
+                <option value="ppt" selected>☀️ PPT do Dia (09:20) - Padrão Matriz Inicial</option>
+                <option value="ultimo">⚡ Último Sorteio Apurado (Cruzamento Dinâmico de Rodadas)</option>
+              </select>
+            </div>
+
             <div class="btn-group-pills" id="group-qtd-cartoes">
-              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(1)">1 Cartão</button>
-              <button type="button" class="btn-pill-k active" onclick="setQtdCartoesGrade(3)">3 Cartões</button>
-              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(5)">5 Cartões</button>
-              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(10)">10 Cartões</button>
-              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(20)">20 Cartões</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(1)">1</button>
+              <button type="button" class="btn-pill-k active" onclick="setQtdCartoesGrade(3)">3</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(5)">5</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(10)">10</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(20)">20</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(50)">50 🔥</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(100)">100 🚀</button>
             </div>
           </div>
 
@@ -1345,6 +1358,6 @@
     <span id="toast-msg">Mensagem</span>
   </div>
 
-  <script src="/js/app.js?v=4.0"></script>
+  <script src="/js/app.js?v=4.1"></script>
 </body>
 </html>

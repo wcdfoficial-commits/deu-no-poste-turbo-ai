@@ -1,10 +1,12 @@
 """
 Módulo Grade 3x3 Turbo (Hashtag Engine) + Puxadas + Histórico 24h
 DEU NO POSTE ANALYTICS PRO
+Versão 2.0: Suporte a Dinâmica Multirodada (PPT vs Último Sorteio) e Escala Top-K (até 100 cartões)
 """
 
 import sqlite3
 from typing import Dict, Any, List, Optional
+from itertools import permutations
 from database import DB_PATH, BICHO_INFO
 
 # Tabela tradicional de Puxadas do Jogo do Bicho
@@ -51,10 +53,6 @@ def dezena_to_grupo(dez_str: str) -> int:
         return 1
 
 def build_grade_3x3(g1: int, g2: int) -> Dict[str, Any]:
-    """
-    Constrói a grade 3x3 do Jogo da Velha baseada nos grupos 1 e 2 da PPT
-    usando a regra das diferenças estritas ("pauzinhos").
-    """
     tl = g1 // 10
     tr = g1 % 10
     bl = g2 // 10
@@ -73,15 +71,15 @@ def build_grade_3x3(g1: int, g2: int) -> Dict[str, Any]:
     ]
 
     celulas = [
-        {"pos": "0,0", "linha": 0, "col": 0, "valor": tl, "tipo": "vertice", "origem": f"1º Prêmio PPT (Dezena Grupo {g1:02d})"},
+        {"pos": "0,0", "linha": 0, "col": 0, "valor": tl, "tipo": "vertice", "origem": f"1º Prêmio (Dezena Grupo {g1:02d})"},
         {"pos": "0,1", "linha": 0, "col": 1, "valor": tm, "tipo": "diferenca", "origem": f"Entre {tl} e {tr}"},
-        {"pos": "0,2", "linha": 0, "col": 2, "valor": tr, "tipo": "vertice", "origem": f"1º Prêmio PPT (Unidade Grupo {g1:02d})"},
+        {"pos": "0,2", "linha": 0, "col": 2, "valor": tr, "tipo": "vertice", "origem": f"1º Prêmio (Unidade Grupo {g1:02d})"},
         {"pos": "1,0", "linha": 1, "col": 0, "valor": lm, "tipo": "diferenca", "origem": f"Entre {tl} e {bl}"},
         {"pos": "1,1", "linha": 1, "col": 1, "valor": center, "tipo": "centro", "origem": f"Eixo Central entre {lm} e {rm}"},
         {"pos": "1,2", "linha": 1, "col": 2, "valor": rm, "tipo": "diferenca", "origem": f"Entre {tr} e {br}"},
-        {"pos": "2,0", "linha": 2, "col": 0, "valor": bl, "tipo": "vertice", "origem": f"2º Prêmio PPT (Dezena Grupo {g2:02d})"},
+        {"pos": "2,0", "linha": 2, "col": 0, "valor": bl, "tipo": "vertice", "origem": f"2º Prêmio (Dezena Grupo {g2:02d})"},
         {"pos": "2,1", "linha": 2, "col": 1, "valor": bm, "tipo": "diferenca", "origem": f"Entre {bl} e {br}"},
-        {"pos": "2,2", "linha": 2, "col": 2, "valor": br, "tipo": "vertice", "origem": f"2º Prêmio PPT (Unidade Grupo {g2:02d})"}
+        {"pos": "2,2", "linha": 2, "col": 2, "valor": br, "tipo": "vertice", "origem": f"2º Prêmio (Unidade Grupo {g2:02d})"}
     ]
 
     return {
@@ -98,6 +96,7 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
     milhares = set()
     dezenas = set()
 
+    # 1. Caminhos adjacentes na grade
     def dfs(r, c, path, visited):
         val = "".join(str(grid[pr][pc]) for pr, pc in path)
         if len(path) == 2:
@@ -119,7 +118,7 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
         for c in range(3):
             dfs(r, c, [(r, c)], {(r, c)})
 
-    # Linhas e diagonais diretas garantidas
+    # 2. Linhas e diagonais diretas garantidas
     linhas = [
         [grid[0][0], grid[0][1], grid[0][2]],
         [grid[1][0], grid[1][1], grid[1][2]],
@@ -138,64 +137,35 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
         dezenas.add(c1[-2:])
         dezenas.add(c2[-2:])
 
+    # 3. Permutações adicionais para garantir pool expansivo de até 150+ opções
+    all_cells = [grid[r][c] for r in range(3) for c in range(3)]
+    for p in permutations(all_cells, 3):
+        centenas.add("".join(str(x) for x in p))
+        if len(centenas) >= 150:
+            break
+
+    for p in permutations(all_cells, 4):
+        milhares.add("".join(str(x) for x in p))
+        if len(milhares) >= 300:
+            break
+
     return {
         "centenas": sorted(list(centenas)),
         "milhares": sorted(list(milhares)),
         "dezenas": sorted(list(dezenas))
     }
 
-def obter_dados_contexto(data_alvo: Optional[str] = None) -> Dict[str, Any]:
+def obter_dados_contexto(data_alvo: Optional[str] = None, origem_grade: str = "ppt") -> Dict[str, Any]:
     """
-    Busca o sorteio PPT do dia (para montar a grade), o sorteio imediatamente anterior
-    (para cálculo das puxadas) e as últimas 24h de sorteios.
+    Busca os dados de referência para a grade.
+    - Se origem_grade == 'ppt': monta a grade a partir do sorteio PPT do dia.
+    - Se origem_grade == 'ultimo': monta a grade a partir dos 1º e 2º prêmios do ÚLTIMO sorteio apurado (dinâmico).
     """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # 1. Pega os últimos registros com PPT
-    query_ppt = """
-        SELECT data, id_sorteio, extracao FROM resultados 
-        WHERE extracao = 'PPT' 
-        ORDER BY data DESC, id_sorteio DESC LIMIT 1
-    """
-    if data_alvo:
-        cursor.execute("SELECT data, id_sorteio, extracao FROM resultados WHERE extracao = 'PPT' AND data <= ? ORDER BY data DESC LIMIT 1", (data_alvo,))
-    else:
-        cursor.execute(query_ppt)
-    row_ppt = cursor.fetchone()
-
-    if not row_ppt:
-        # Fallback genérico caso banco esteja vazio
-        conn.close()
-        return {
-            "ppt_data": "Exemplo",
-            "g1": 9,
-            "g2": 13,
-            "bicho_1": "Cobra",
-            "bicho_2": "Galo",
-            "ultimo_sorteio": None,
-            "historico_24h": []
-        }
-
-    id_ppt = row_ppt["id_sorteio"]
-    data_ppt = row_ppt["data"]
-
-    # Busca prêmios 1 e 2 da PPT
-    cursor.execute("""
-        SELECT premio_num, milhar, centena, dezena, grupo, bicho 
-        FROM resultados 
-        WHERE id_sorteio = ? AND premio_num IN (1, 2)
-        ORDER BY premio_num ASC
-    """, (id_ppt,))
-    premios_ppt = [dict(r) for r in cursor.fetchall()]
-
-    g1 = int(premios_ppt[0]["grupo"]) if len(premios_ppt) > 0 else 9
-    g2 = int(premios_ppt[1]["grupo"]) if len(premios_ppt) > 1 else 13
-    b1 = premios_ppt[0]["bicho"] if len(premios_ppt) > 0 else "Cobra"
-    b2 = premios_ppt[1]["bicho"] if len(premios_ppt) > 1 else "Galo"
-
-    # 2. Pega o sorteio mais recente do banco (para puxadas ativas)
+    # 1. Pega o sorteio mais recente do banco
     cursor.execute("""
         SELECT id_sorteio, data, horario, extracao 
         FROM resultados 
@@ -212,6 +182,53 @@ def obter_dados_contexto(data_alvo: Optional[str] = None) -> Dict[str, Any]:
             "extracao": ult_row["extracao"],
             "premios": [dict(r) for r in cursor.fetchall()]
         }
+
+    # 2. Define os grupos G1 e G2 da Grade
+    origem_label = ""
+    g1, g2 = 9, 13
+    b1, b2 = "Cobra", "Galo"
+    data_ref = "Hoje"
+    id_ref = None
+
+    if origem_grade == "ultimo" and ultimo_sorteio and len(ultimo_sorteio["premios"]) >= 2:
+        p1 = ultimo_sorteio["premios"][0]
+        p2 = ultimo_sorteio["premios"][1]
+        g1 = int(p1["grupo"])
+        g2 = int(p2["grupo"])
+        b1 = p1["bicho"]
+        b2 = p2["bicho"]
+        data_ref = ultimo_sorteio["data"]
+        id_ref = ultimo_sorteio["id_sorteio"]
+        origem_label = f"Última Rodada: {ultimo_sorteio['extracao']} ({ultimo_sorteio['horario']})"
+    else:
+        # Padrão PPT
+        query_ppt = """
+            SELECT data, id_sorteio, extracao FROM resultados 
+            WHERE extracao = 'PPT' 
+            ORDER BY data DESC, id_sorteio DESC LIMIT 1
+        """
+        if data_alvo:
+            cursor.execute("SELECT data, id_sorteio, extracao FROM resultados WHERE extracao = 'PPT' AND data <= ? ORDER BY data DESC LIMIT 1", (data_alvo,))
+        else:
+            cursor.execute(query_ppt)
+        row_ppt = cursor.fetchone()
+
+        if row_ppt:
+            id_ref = row_ppt["id_sorteio"]
+            data_ref = row_ppt["data"]
+            cursor.execute("""
+                SELECT premio_num, milhar, centena, dezena, grupo, bicho 
+                FROM resultados 
+                WHERE id_sorteio = ? AND premio_num IN (1, 2)
+                ORDER BY premio_num ASC
+            """, (id_ref,))
+            premios_ppt = [dict(r) for r in cursor.fetchall()]
+            if len(premios_ppt) >= 2:
+                g1 = int(premios_ppt[0]["grupo"])
+                g2 = int(premios_ppt[1]["grupo"])
+                b1 = premios_ppt[0]["bicho"]
+                b2 = premios_ppt[1]["bicho"]
+            origem_label = f"PPT 09:20 ({data_ref})"
 
     # 3. Pega as últimas 24h de sorteios (últimos 5 sorteios)
     cursor.execute("""
@@ -230,13 +247,14 @@ def obter_dados_contexto(data_alvo: Optional[str] = None) -> Dict[str, Any]:
 
     conn.close()
     return {
-        "ppt_data": data_ppt,
-        "ppt_id": id_ppt,
+        "origem_grade": origem_grade,
+        "origem_label": origem_label,
+        "data_ref": data_ref,
+        "id_ref": id_ref,
         "g1": g1,
         "g2": g2,
         "bicho_1": b1,
         "bicho_2": b2,
-        "premios_ppt": premios_ppt,
         "ultimo_sorteio": ultimo_sorteio,
         "historico_24h": historico_24h
     }
@@ -247,12 +265,14 @@ def gerar_top_k_grade3x3(
     posicao: str = "cabeca",
     valor_aposta: float = 1.0,
     bicho_preferido: Optional[str] = None,
-    data_alvo: Optional[str] = None
+    data_alvo: Optional[str] = None,
+    origem_grade: str = "ppt"
 ) -> Dict[str, Any]:
     """
     Executa a seleção e ranqueamento multicamada das melhores alternativas.
+    Suporta K = 1, 3, 5, 10, 20, 50, 100.
     """
-    contexto = obter_dados_contexto(data_alvo)
+    contexto = obter_dados_contexto(data_alvo, origem_grade=origem_grade)
     grid_info = build_grade_3x3(contexto["g1"], contexto["g2"])
     pools = extrair_caminhos_grade(grid_info["matriz"])
 
@@ -261,7 +281,6 @@ def gerar_top_k_grade3x3(
     elif modalidade == "dezena":
         candidatos_base = pools["dezenas"]
     elif modalidade == "grupo":
-        # grupos derivados das dezenas da grade
         grupos_set = set(dezena_to_grupo(d) for d in pools["dezenas"])
         candidatos_base = [f"{g:02d}" for g in sorted(grupos_set)]
     else: # centena
@@ -277,7 +296,6 @@ def gerar_top_k_grade3x3(
         for p in ultimo_sorteio["premios"]:
             prev_dezenas.add(str(p["dezena"]).zfill(2))
 
-    # Dezenas das últimas 24h
     l24_dezenas = []
     for s in contexto.get("historico_24h", []):
         for p in s.get("premios", []):
@@ -296,7 +314,7 @@ def gerar_top_k_grade3x3(
 
     scored = []
     for cand in candidatos_base:
-        score = 5.0 # base score
+        score = 5.0
         motivos = []
 
         if modalidade == "grupo":
@@ -310,16 +328,15 @@ def gerar_top_k_grade3x3(
             bicho_nome = BICHO_INFO.get(grp_num, {}).get("nome", "")
             icone = BICHO_INFO.get(grp_num, {}).get("icone", "🎯")
 
-        # Filtro de bicho preferido se solicitado pelo usuário
         if bicho_preferido and bicho_preferido != "Todos":
             if bicho_nome.lower() != bicho_preferido.lower() and f"{grp_num:02d}" != bicho_preferido:
                 continue
 
-        # 1. Puxada clássica do último bicho
+        # 1. Puxada clássica
         if prev_cabeca_grp and grp_num in PUXADAS.get(prev_cabeca_grp, []):
             score += 3.5
             puxador = BICHO_INFO.get(prev_cabeca_grp, {}).get("nome", f"Grupo {prev_cabeca_grp:02d}")
-            motivos.append(f"Puxada clássica do {puxador} que saiu na cabeça do último sorteio")
+            motivos.append(f"Puxada clássica do {puxador} que saiu na cabeça da rodada anterior")
 
         # 2. Eco do sorteio anterior
         if dez_ref in prev_dezenas:
@@ -344,11 +361,9 @@ def gerar_top_k_grade3x3(
                     motivos.append("Alinhamento direto na grade (linha ou diagonal limpa)")
                     break
 
-        # Motivo fallback caso tenha poucos
         if not motivos:
             motivos.append("Combinação adjacente fechada no quadrante da grade")
 
-        # Nível de relevância
         rel_label = "Alta Relevância" if score >= 8.5 else ("Média-Alta" if score >= 7.0 else "Equilibrada")
 
         scored.append({
@@ -362,11 +377,9 @@ def gerar_top_k_grade3x3(
             "motivos": motivos
         })
 
-    # Ordena pelo score decrescente
     scored.sort(key=lambda x: x["score"], reverse=True)
     top_cartoes = scored[:qtd_cartoes]
 
-    # Resumo financeiro
     mults = MULTIPLICADORES.get(modalidade, {"cabeca": 600.0, "cercado": 120.0})
     mult_ativo = mults["cabeca"] if posicao == "cabeca" else mults["cercado"]
     custo_total = len(top_cartoes) * valor_aposta
@@ -383,11 +396,13 @@ def gerar_top_k_grade3x3(
             "custo_total": custo_total,
             "multiplicador": mult_ativo,
             "premio_potencial_por_cartao": premio_por_cartao,
-            "bicho_preferido": bicho_preferido or "Todos"
+            "bicho_preferido": bicho_preferido or "Todos",
+            "origem_grade": origem_grade
         },
         "contexto_sorteio": {
-            "ppt_data": contexto["ppt_data"],
-            "ppt_id": contexto.get("ppt_id"),
+            "origem_grade": contexto["origem_grade"],
+            "origem_label": contexto["origem_label"],
+            "data_ref": contexto["data_ref"],
             "g1": f"{contexto['g1']:02d}",
             "g2": f"{contexto['g2']:02d}",
             "bicho_1": contexto["bicho_1"],

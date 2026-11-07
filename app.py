@@ -339,6 +339,7 @@ class Grade3x3GerarRequest(BaseModel):
     valor_aposta: Optional[float] = 1.0
     bicho_preferido: Optional[str] = None
     data_alvo: Optional[str] = None
+    origem_grade: Optional[str] = "ppt" # "ppt" (Manhã) ou "ultimo" (Última Rodada Dinâmica)
 
 class Grade3x3FilaRequest(BaseModel):
     apostas: List[str]
@@ -348,8 +349,8 @@ class Grade3x3FilaRequest(BaseModel):
     nome_estrategia: Optional[str] = "Grade 3x3 Turbo (Top-K)"
 
 @app.get("/api/grade-3x3/info")
-def api_grade3x3_info(data_alvo: Optional[str] = None):
-    ctx = obter_dados_contexto(data_alvo)
+def api_grade3x3_info(data_alvo: Optional[str] = None, origem_grade: str = "ppt"):
+    ctx = obter_dados_contexto(data_alvo, origem_grade=origem_grade)
     grid = build_grade_3x3(ctx["g1"], ctx["g2"])
     return {
         "status": "success",
@@ -365,7 +366,8 @@ def api_grade3x3_gerar(req: Grade3x3GerarRequest):
         posicao=req.posicao or "cabeca",
         valor_aposta=req.valor_aposta or 1.0,
         bicho_preferido=req.bicho_preferido,
-        data_alvo=req.data_alvo
+        data_alvo=req.data_alvo,
+        origem_grade=req.origem_grade or "ppt"
     )
 
 @app.post("/api/grade-3x3/enviar-fila")

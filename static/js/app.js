@@ -2084,7 +2084,8 @@ function setQtdCartoesGrade(k) {
   grade3x3State.qtdCartoes = k;
   const pills = document.querySelectorAll("#group-qtd-cartoes .btn-pill-k");
   pills.forEach(p => {
-    if (p.textContent.includes(`${k} Cartão`) || p.textContent.includes(`${k} Cartões`)) {
+    const txt = p.textContent.trim().split(" ")[0];
+    if (txt === String(k)) {
       p.classList.add("active");
     } else {
       p.classList.remove("active");
@@ -2092,6 +2093,10 @@ function setQtdCartoesGrade(k) {
   });
   atualizarResumoFinanceiroGrade();
   executarGeradorGrade3x3();
+}
+
+function trocarOrigemGrade3x3() {
+  carregarModuloGrade3x3();
 }
 
 function atualizarResumoFinanceiroGrade() {
@@ -2127,7 +2132,8 @@ async function carregarModuloGrade3x3() {
   if (statusPptEl) statusPptEl.textContent = "Carregando dados da PPT...";
 
   try {
-    const res = await fetch("/api/grade-3x3/info");
+    const origem = document.getElementById("grade3x3-select-origem")?.value || "ppt";
+    const res = await fetch(`/api/grade-3x3/info?origem_grade=${origem}`);
     const data = await res.json();
     if (data.status === "success") {
       grade3x3State.dadosAtuais = data;
@@ -2197,6 +2203,7 @@ async function executarGeradorGrade3x3() {
   if (btnGerar) btnGerar.disabled = true;
 
   try {
+    const origem = document.getElementById("grade3x3-select-origem")?.value || "ppt";
     const res = await fetch("/api/grade-3x3/gerar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2205,7 +2212,8 @@ async function executarGeradorGrade3x3() {
         modalidade: modalidade,
         posicao: posicao,
         valor_aposta: valor,
-        bicho_preferido: bichoPref === "Todos" ? null : bichoPref
+        bicho_preferido: bichoPref === "Todos" ? null : bichoPref,
+        origem_grade: origem
       })
     });
     const data = await res.json();

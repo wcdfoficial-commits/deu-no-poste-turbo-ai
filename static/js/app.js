@@ -2095,7 +2095,40 @@ function setQtdCartoesGrade(k) {
   executarGeradorGrade3x3();
 }
 
-function trocarOrigemGrade3x3() {
+let grade3x3SorteiosDisponiveis = [];
+
+async function trocarOrigemGrade3x3() {
+  const origem = document.getElementById("grade3x3-select-origem")?.value || "ppt";
+  const painelManual = document.getElementById("grade3x3-painel-manual");
+
+  if (origem === "manual") {
+    if (painelManual) painelManual.style.display = "block";
+    await carregarSorteiosDisponiveisGrade();
+  } else {
+    if (painelManual) painelManual.style.display = "none";
+  }
+  await carregarModuloGrade3x3();
+}
+
+async function carregarSorteiosDisponiveisGrade() {
+  const s1 = document.getElementById("grade3x3-select-sorteio-1");
+  const s2 = document.getElementById("grade3x3-select-sorteio-2");
+  if (!s1 || s1.options.length > 2) return;
+
+  try {
+    const res = await fetch("/api/grade-3x3/sorteios-disponiveis");
+    const data = await res.json();
+    grade3x3SorteiosDisponiveis = data;
+
+    s1.innerHTML = data.map((d, i) => `<option value="${d.id_sorteio}" ${i === 0 ? 'selected' : ''}>${d.rotulo}</option>`).join("");
+    s2.innerHTML = `<option value="">(Mesma rodada do 1º vértice - usa 2º prêmio)</option>` + 
+      data.map((d, i) => `<option value="${d.id_sorteio}">${d.rotulo}</option>`).join("");
+  } catch (err) {
+    console.error("Erro ao carregar sorteios disponíveis:", err);
+  }
+}
+
+function trocarSorteiosManuaisGrade() {
   carregarModuloGrade3x3();
 }
 
@@ -2133,7 +2166,14 @@ async function carregarModuloGrade3x3() {
 
   try {
     const origem = document.getElementById("grade3x3-select-origem")?.value || "ppt";
-    const res = await fetch(`/api/grade-3x3/info?origem_grade=${origem}`);
+    let url = `/api/grade-3x3/info?origem_grade=${origem}`;
+    if (origem === "manual") {
+      const s1 = document.getElementById("grade3x3-select-sorteio-1")?.value;
+      const s2 = document.getElementById("grade3x3-select-sorteio-2")?.value;
+      if (s1) url += `&id_sorteio_1=${s1}`;
+      if (s2) url += `&id_sorteio_2=${s2}`;
+    }
+    const res = await fetch(url);
     const data = await res.json();
     if (data.status === "success") {
       grade3x3State.dadosAtuais = data;
@@ -2204,17 +2244,24 @@ async function executarGeradorGrade3x3() {
 
   try {
     const origem = document.getElementById("grade3x3-select-origem")?.value || "ppt";
+    const payload = {
+      qtd_cartoes: k,
+      modalidade: modalidade,
+      posicao: posicao,
+      valor_aposta: valor,
+      bicho_preferido: bichoPref === "Todos" ? null : bichoPref,
+      origem_grade: origem
+    };
+    if (origem === "manual") {
+      const s1 = document.getElementById("grade3x3-select-sorteio-1")?.value;
+      const s2 = document.getElementById("grade3x3-select-sorteio-2")?.value;
+      if (s1) payload.id_sorteio_1 = parseInt(s1);
+      if (s2) payload.id_sorteio_2 = parseInt(s2);
+    }
     const res = await fetch("/api/grade-3x3/gerar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        qtd_cartoes: k,
-        modalidade: modalidade,
-        posicao: posicao,
-        valor_aposta: valor,
-        bicho_preferido: bichoPref === "Todos" ? null : bichoPref,
-        origem_grade: origem
-      })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
 

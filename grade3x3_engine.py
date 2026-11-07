@@ -1,7 +1,7 @@
 """
 Módulo Grade 3x3 Turbo (Hashtag Engine) + Puxadas + Histórico 24h
 DEU NO POSTE ANALYTICS PRO
-Versão 2.0: Suporte a Dinâmica Multirodada (PPT vs Último Sorteio) e Escala Top-K (até 100 cartões)
+Versão 3.0: Suporte a Cruzamento Manual de Rodadas Customizadas (Intuição do Jogador)
 """
 
 import sqlite3
@@ -71,15 +71,15 @@ def build_grade_3x3(g1: int, g2: int) -> Dict[str, Any]:
     ]
 
     celulas = [
-        {"pos": "0,0", "linha": 0, "col": 0, "valor": tl, "tipo": "vertice", "origem": f"1º Prêmio (Dezena Grupo {g1:02d})"},
+        {"pos": "0,0", "linha": 0, "col": 0, "valor": tl, "tipo": "vertice", "origem": f"1º Vértice (Dezena G{g1:02d})"},
         {"pos": "0,1", "linha": 0, "col": 1, "valor": tm, "tipo": "diferenca", "origem": f"Entre {tl} e {tr}"},
-        {"pos": "0,2", "linha": 0, "col": 2, "valor": tr, "tipo": "vertice", "origem": f"1º Prêmio (Unidade Grupo {g1:02d})"},
+        {"pos": "0,2", "linha": 0, "col": 2, "valor": tr, "tipo": "vertice", "origem": f"1º Vértice (Unidade G{g1:02d})"},
         {"pos": "1,0", "linha": 1, "col": 0, "valor": lm, "tipo": "diferenca", "origem": f"Entre {tl} e {bl}"},
         {"pos": "1,1", "linha": 1, "col": 1, "valor": center, "tipo": "centro", "origem": f"Eixo Central entre {lm} e {rm}"},
         {"pos": "1,2", "linha": 1, "col": 2, "valor": rm, "tipo": "diferenca", "origem": f"Entre {tr} e {br}"},
-        {"pos": "2,0", "linha": 2, "col": 0, "valor": bl, "tipo": "vertice", "origem": f"2º Prêmio (Dezena Grupo {g2:02d})"},
+        {"pos": "2,0", "linha": 2, "col": 0, "valor": bl, "tipo": "vertice", "origem": f"2º Vértice (Dezena G{g2:02d})"},
         {"pos": "2,1", "linha": 2, "col": 1, "valor": bm, "tipo": "diferenca", "origem": f"Entre {bl} e {br}"},
-        {"pos": "2,2", "linha": 2, "col": 2, "valor": br, "tipo": "vertice", "origem": f"2º Prêmio (Unidade Grupo {g2:02d})"}
+        {"pos": "2,2", "linha": 2, "col": 2, "valor": br, "tipo": "vertice", "origem": f"2º Vértice (Unidade G{g2:02d})"}
     ]
 
     return {
@@ -96,7 +96,6 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
     milhares = set()
     dezenas = set()
 
-    # 1. Caminhos adjacentes na grade
     def dfs(r, c, path, visited):
         val = "".join(str(grid[pr][pc]) for pr, pc in path)
         if len(path) == 2:
@@ -118,7 +117,6 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
         for c in range(3):
             dfs(r, c, [(r, c)], {(r, c)})
 
-    # 2. Linhas e diagonais diretas garantidas
     linhas = [
         [grid[0][0], grid[0][1], grid[0][2]],
         [grid[1][0], grid[1][1], grid[1][2]],
@@ -137,7 +135,6 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
         dezenas.add(c1[-2:])
         dezenas.add(c2[-2:])
 
-    # 3. Permutações adicionais para garantir pool expansivo de até 150+ opções
     all_cells = [grid[r][c] for r in range(3) for c in range(3)]
     for p in permutations(all_cells, 3):
         centenas.add("".join(str(x) for x in p))
@@ -155,17 +152,59 @@ def extrair_caminhos_grade(grid: List[List[int]]) -> Dict[str, List[str]]:
         "dezenas": sorted(list(dezenas))
     }
 
-def obter_dados_contexto(data_alvo: Optional[str] = None, origem_grade: str = "ppt") -> Dict[str, Any]:
+def listar_sorteios_recentes(limite: int = 25) -> List[Dict[str, Any]]:
+    """
+    Lista os sorteios recentes disponíveis para seleção manual no frontend.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT id_sorteio, data, horario, extracao 
+        FROM resultados 
+        ORDER BY data DESC, horario DESC, id_sorteio DESC LIMIT ?
+    """, (limite,))
+    
+    sorteios = []
+    for r in cursor.fetchall():
+        c2 = conn.cursor()
+        c2.execute("SELECT premio_num, bicho, grupo, milhar FROM resultados WHERE id_sorteio = ? AND premio_num IN (1,2) ORDER BY premio_num ASC", (r["id_sorteio"],))
+        premios = [dict(x) for x in c2.fetchall()]
+        p1 = premios[0] if len(premios) > 0 else {}
+        p2 = premios[1] if len(premios) > 1 else {}
+        sorteios.append({
+            "id_sorteio": r["id_sorteio"],
+            "data": r["data"],
+            "horario": r["horario"],
+            "extracao": r["extracao"],
+            "g1": p1.get("grupo", "01"),
+            "b1": p1.get("bicho", "Avestruz"),
+            "m1": p1.get("milhar", "0000"),
+            "g2": p2.get("grupo", "02"),
+            "b2": p2.get("bicho", "Águia"),
+            "m2": p2.get("milhar", "0000"),
+            "rotulo": f"{r['data']} - {r['extracao']} ({r['horario']}) | 1º: {p1.get('bicho')} (G{p1.get('grupo')}) • 2º: {p2.get('bicho')} (G{p2.get('grupo')})"
+        })
+    conn.close()
+    return sorteios
+
+def obter_dados_contexto(
+    data_alvo: Optional[str] = None,
+    origem_grade: str = "ppt",
+    id_sorteio_1: Optional[int] = None,
+    id_sorteio_2: Optional[int] = None
+) -> Dict[str, Any]:
     """
     Busca os dados de referência para a grade.
-    - Se origem_grade == 'ppt': monta a grade a partir do sorteio PPT do dia.
-    - Se origem_grade == 'ultimo': monta a grade a partir dos 1º e 2º prêmios do ÚLTIMO sorteio apurado (dinâmico).
+    - origem_grade == 'ppt': monta a partir da PPT do dia.
+    - origem_grade == 'ultimo': monta a partir dos 1º e 2º prêmios da rodada mais recente.
+    - origem_grade == 'manual': monta a partir do(s) sorteio(s) escolhido(s) manualmente pelo jogador.
     """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # 1. Pega o sorteio mais recente do banco
+    # 1. Pega o sorteio mais recente do banco (para puxadas ativas)
     cursor.execute("""
         SELECT id_sorteio, data, horario, extracao 
         FROM resultados 
@@ -183,14 +222,43 @@ def obter_dados_contexto(data_alvo: Optional[str] = None, origem_grade: str = "p
             "premios": [dict(r) for r in cursor.fetchall()]
         }
 
-    # 2. Define os grupos G1 e G2 da Grade
+    # 2. Definição da origem dos grupos
     origem_label = ""
     g1, g2 = 9, 13
     b1, b2 = "Cobra", "Galo"
     data_ref = "Hoje"
     id_ref = None
 
-    if origem_grade == "ultimo" and ultimo_sorteio and len(ultimo_sorteio["premios"]) >= 2:
+    if origem_grade == "manual" and id_sorteio_1:
+        # Modo Manual Personalizado
+        cursor.execute("SELECT premio_num, bicho, grupo, milhar, data, extracao, horario FROM resultados WHERE id_sorteio = ? AND premio_num IN (1,2) ORDER BY premio_num ASC", (id_sorteio_1,))
+        p_s1 = [dict(r) for r in cursor.fetchall()]
+        if p_s1:
+            g1 = int(p_s1[0]["grupo"])
+            b1 = p_s1[0]["bicho"]
+            data_ref = p_s1[0]["data"]
+            s1_nome = f"{p_s1[0]['extracao']} ({p_s1[0]['horario']})"
+            
+            # Se tiver id_sorteio_2 diferente
+            if id_sorteio_2 and id_sorteio_2 != id_sorteio_1:
+                cursor.execute("SELECT premio_num, bicho, grupo, milhar, extracao, horario FROM resultados WHERE id_sorteio = ? AND premio_num = 1", (id_sorteio_2,))
+                p_s2 = [dict(r) for r in cursor.fetchall()]
+                if p_s2:
+                    g2 = int(p_s2[0]["grupo"])
+                    b2 = p_s2[0]["bicho"]
+                    s2_nome = f"{p_s2[0]['extracao']} ({p_s2[0]['horario']})"
+                    origem_label = f"Cruzamento Personalizado: {s1_nome} x {s2_nome}"
+                else:
+                    g2 = int(p_s1[1]["grupo"]) if len(p_s1) > 1 else g1
+                    b2 = p_s1[1]["bicho"] if len(p_s1) > 1 else b1
+                    origem_label = f"Manual: {s1_nome}"
+            else:
+                g2 = int(p_s1[1]["grupo"]) if len(p_s1) > 1 else g1
+                b2 = p_s1[1]["bicho"] if len(p_s1) > 1 else b1
+                origem_label = f"Manual: {s1_nome}"
+        id_ref = id_sorteio_1
+
+    elif origem_grade == "ultimo" and ultimo_sorteio and len(ultimo_sorteio["premios"]) >= 2:
         p1 = ultimo_sorteio["premios"][0]
         p2 = ultimo_sorteio["premios"][1]
         g1 = int(p1["grupo"])
@@ -230,7 +298,7 @@ def obter_dados_contexto(data_alvo: Optional[str] = None, origem_grade: str = "p
                 b2 = premios_ppt[1]["bicho"]
             origem_label = f"PPT 09:20 ({data_ref})"
 
-    # 3. Pega as últimas 24h de sorteios (últimos 5 sorteios)
+    # 3. Pega as últimas 24h de sorteios
     cursor.execute("""
         SELECT DISTINCT id_sorteio, data, horario, extracao 
         FROM resultados 
@@ -251,6 +319,8 @@ def obter_dados_contexto(data_alvo: Optional[str] = None, origem_grade: str = "p
         "origem_label": origem_label,
         "data_ref": data_ref,
         "id_ref": id_ref,
+        "id_sorteio_1": id_sorteio_1,
+        "id_sorteio_2": id_sorteio_2,
         "g1": g1,
         "g2": g2,
         "bicho_1": b1,
@@ -266,13 +336,16 @@ def gerar_top_k_grade3x3(
     valor_aposta: float = 1.0,
     bicho_preferido: Optional[str] = None,
     data_alvo: Optional[str] = None,
-    origem_grade: str = "ppt"
+    origem_grade: str = "ppt",
+    id_sorteio_1: Optional[int] = None,
+    id_sorteio_2: Optional[int] = None
 ) -> Dict[str, Any]:
-    """
-    Executa a seleção e ranqueamento multicamada das melhores alternativas.
-    Suporta K = 1, 3, 5, 10, 20, 50, 100.
-    """
-    contexto = obter_dados_contexto(data_alvo, origem_grade=origem_grade)
+    contexto = obter_dados_contexto(
+        data_alvo=data_alvo,
+        origem_grade=origem_grade,
+        id_sorteio_1=id_sorteio_1,
+        id_sorteio_2=id_sorteio_2
+    )
     grid_info = build_grade_3x3(contexto["g1"], contexto["g2"])
     pools = extrair_caminhos_grade(grid_info["matriz"])
 
@@ -286,7 +359,6 @@ def gerar_top_k_grade3x3(
     else: # centena
         candidatos_base = pools["centenas"]
 
-    # Extrai informações para pontuação
     ultimo_sorteio = contexto.get("ultimo_sorteio")
     prev_cabeca_grp = None
     prev_dezenas = set()
@@ -332,13 +404,13 @@ def gerar_top_k_grade3x3(
             if bicho_nome.lower() != bicho_preferido.lower() and f"{grp_num:02d}" != bicho_preferido:
                 continue
 
-        # 1. Puxada clássica
+        # 1. Puxada
         if prev_cabeca_grp and grp_num in PUXADAS.get(prev_cabeca_grp, []):
             score += 3.5
             puxador = BICHO_INFO.get(prev_cabeca_grp, {}).get("nome", f"Grupo {prev_cabeca_grp:02d}")
-            motivos.append(f"Puxada clássica do {puxador} que saiu na cabeça da rodada anterior")
+            motivos.append(f"Puxada clássica do {puxador} que saiu na cabeça")
 
-        # 2. Eco do sorteio anterior
+        # 2. Eco
         if dez_ref in prev_dezenas:
             score += 2.5
             motivos.append(f"Dezena {dez_ref} presente no sorteio anterior (efeito repetição)")
@@ -362,7 +434,7 @@ def gerar_top_k_grade3x3(
                     break
 
         if not motivos:
-            motivos.append("Combinação adjacente fechada no quadrante da grade")
+            motivos.append("Combinação geométrica do quadrante da grade")
 
         rel_label = "Alta Relevância" if score >= 8.5 else ("Média-Alta" if score >= 7.0 else "Equilibrada")
 
@@ -397,7 +469,9 @@ def gerar_top_k_grade3x3(
             "multiplicador": mult_ativo,
             "premio_potencial_por_cartao": premio_por_cartao,
             "bicho_preferido": bicho_preferido or "Todos",
-            "origem_grade": origem_grade
+            "origem_grade": origem_grade,
+            "id_sorteio_1": id_sorteio_1,
+            "id_sorteio_2": id_sorteio_2
         },
         "contexto_sorteio": {
             "origem_grade": contexto["origem_grade"],

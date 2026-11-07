@@ -19,7 +19,7 @@ from database import (
 from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
 from auto_pilot import auto_pilot
-from grade3x3_engine import gerar_top_k_grade3x3, obter_dados_contexto, build_grade_3x3
+from grade3x3_engine import gerar_top_k_grade3x3, obter_dados_contexto, build_grade_3x3, listar_sorteios_recentes
 
 app = FastAPI(title="DEU NO POSTE TURBO AI", version="2.0")
 
@@ -339,7 +339,9 @@ class Grade3x3GerarRequest(BaseModel):
     valor_aposta: Optional[float] = 1.0
     bicho_preferido: Optional[str] = None
     data_alvo: Optional[str] = None
-    origem_grade: Optional[str] = "ppt" # "ppt" (Manhã) ou "ultimo" (Última Rodada Dinâmica)
+    origem_grade: Optional[str] = "ppt" # "ppt", "ultimo" ou "manual"
+    id_sorteio_1: Optional[int] = None
+    id_sorteio_2: Optional[int] = None
 
 class Grade3x3FilaRequest(BaseModel):
     apostas: List[str]
@@ -348,9 +350,18 @@ class Grade3x3FilaRequest(BaseModel):
     id_sorteio_gatilho: Optional[int] = None
     nome_estrategia: Optional[str] = "Grade 3x3 Turbo (Top-K)"
 
+@app.get("/api/grade-3x3/sorteios-disponiveis")
+def api_grade3x3_sorteios():
+    return listar_sorteios_recentes(limite=25)
+
 @app.get("/api/grade-3x3/info")
-def api_grade3x3_info(data_alvo: Optional[str] = None, origem_grade: str = "ppt"):
-    ctx = obter_dados_contexto(data_alvo, origem_grade=origem_grade)
+def api_grade3x3_info(
+    data_alvo: Optional[str] = None, 
+    origem_grade: str = "ppt",
+    id_sorteio_1: Optional[int] = None,
+    id_sorteio_2: Optional[int] = None
+):
+    ctx = obter_dados_contexto(data_alvo, origem_grade=origem_grade, id_sorteio_1=id_sorteio_1, id_sorteio_2=id_sorteio_2)
     grid = build_grade_3x3(ctx["g1"], ctx["g2"])
     return {
         "status": "success",
@@ -367,7 +378,9 @@ def api_grade3x3_gerar(req: Grade3x3GerarRequest):
         valor_aposta=req.valor_aposta or 1.0,
         bicho_preferido=req.bicho_preferido,
         data_alvo=req.data_alvo,
-        origem_grade=req.origem_grade or "ppt"
+        origem_grade=req.origem_grade or "ppt",
+        id_sorteio_1=req.id_sorteio_1,
+        id_sorteio_2=req.id_sorteio_2
     )
 
 @app.post("/api/grade-3x3/enviar-fila")

@@ -6,7 +6,7 @@
   <title>DEU NO POSTE ANALYTICS PRO - Plataforma Quantitativa</title>
   
   <!-- CSS Principal com Cache-Buster -->
-  <link rel="stylesheet" href="/css/style.css?v=4.1">
+  <link rel="stylesheet" href="/css/style.css?v=4.2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
   <!-- Estilos Críticos Injetados (Garante Renderização Perfeita Mesmo Sem Cache) -->
@@ -687,7 +687,7 @@
             <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
               Quantos Cartões Deseja Formar? (Top-K)
             </label>
-            <!-- Origem da Grade (PPT vs Dinâmica da Última Rodada) -->
+            <!-- Origem da Grade (PPT vs Dinâmica da Última Rodada vs Manual) -->
             <div style="margin-bottom: 1.1rem;">
               <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
                 Origem da Matriz da Grade 3x3
@@ -695,7 +695,36 @@
               <select id="grade3x3-select-origem" class="filter-select" onchange="trocarOrigemGrade3x3()" style="width: 100%;">
                 <option value="ppt" selected>☀️ PPT do Dia (09:20) - Padrão Matriz Inicial</option>
                 <option value="ultimo">⚡ Último Sorteio Apurado (Cruzamento Dinâmico de Rodadas)</option>
+                <option value="manual">🎯 Escolha Manual de Rodadas (Cruzamento Customizado)</option>
               </select>
+            </div>
+
+            <!-- Painel de Escolha Manual de Rodadas (Aparece ao selecionar "manual") -->
+            <div id="grade3x3-painel-manual" style="display: none; background: rgba(56, 189, 248, 0.05); border: 1px dashed var(--accent); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.1rem;">
+              <div style="font-size: 0.78rem; font-weight: 800; color: var(--accent); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                🎯 Cruzamento Manual de Rodadas
+              </div>
+              
+              <div style="margin-bottom: 0.65rem;">
+                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                  Rodada 1 (Vértice Superior - Grupo 1):
+                </label>
+                <select id="grade3x3-select-sorteio-1" class="filter-select" onchange="trocarSorteiosManuaisGrade()" style="width: 100%; font-size: 0.82rem;">
+                  <option value="">Carregando sorteios...</option>
+                </select>
+              </div>
+
+              <div style="margin-bottom: 0.4rem;">
+                <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                  Rodada 2 (Vértice Inferior - Grupo 2 - Opcional):
+                </label>
+                <select id="grade3x3-select-sorteio-2" class="filter-select" onchange="trocarSorteiosManuaisGrade()" style="width: 100%; font-size: 0.82rem;">
+                  <option value="">(Mesma rodada do 1º vértice - usa 2º prêmio)</option>
+                </select>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+                💡 <em>Dica: Escolha duas rodadas diferentes para cruzar resultados anteriores com base na sua intuição.</em>
+              </div>
             </div>
 
             <div class="btn-group-pills" id="group-qtd-cartoes">
@@ -1358,6 +1387,6 @@
     <span id="toast-msg">Mensagem</span>
   </div>
 
-  <script src="/js/app.js?v=4.1"></script>
+  <script src="/js/app.js?v=4.2"></script>
 </body>
 </html>

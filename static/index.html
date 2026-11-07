@@ -6,7 +6,7 @@
   <title>DEU NO POSTE ANALYTICS PRO - Plataforma Quantitativa</title>
   
   <!-- CSS Principal com Cache-Buster -->
-  <link rel="stylesheet" href="/css/style.css?v=3.2">
+  <link rel="stylesheet" href="/css/style.css?v=4.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
   <!-- Estilos Críticos Injetados (Garante Renderização Perfeita Mesmo Sem Cache) -->
@@ -435,6 +435,7 @@
   <div class="tabs-container">
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('tab-predicoes')">🎯 Palpites & Fechamentos IA</button>
+      <button class="tab-btn" onclick="switchTab('tab-grade3x3')">🎲 Grade 3x3 Turbo (Top-K)</button>
       <button class="tab-btn" onclick="switchTab('tab-regras')">🎓 Regras & Simulador Zazá</button>
       <button class="tab-btn" onclick="switchTab('tab-resultados')">📊 Resultados & Filtros</button>
       <button class="tab-btn" onclick="switchTab('tab-puxadas')">🔄 Radar de Puxadas Interativo</button>
@@ -591,6 +592,210 @@
     </div>
 
         <!-- ABA: REGRAS & TIPOS DE APOSTAS (AULA MATEMÁTICA DU ZAZÁ) -->
+
+    <!-- ABA: GRADE 3X3 TURBO (TOP-K) + PUXADAS & HISTÓRICO 24H -->
+    <div id="tab-grade3x3" class="tab-content">
+      
+      <!-- Banner Informativo -->
+      <div class="card grade-hero-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div style="flex: 1; min-width: 300px;">
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
+              <span class="badge-tag" style="background: rgba(56, 189, 248, 0.2); color: var(--accent); border: 1px solid var(--accent); font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 6px;">NOVO MÓDULO INTELIGENTE</span>
+              <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Algoritmo Híbrido Multicamada</span>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 900; color: #fff; margin-bottom: 0.4rem; letter-spacing: -0.02em;">
+              🎲 Gerador da Grade 3x3 Turbo (Top-K Otimizado)
+            </h2>
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+              Cruzamento da <strong>Matriz da PPT (Diferenças Estritas)</strong> com o radar de <strong>Puxadas Tradicionais</strong> e a <strong>Frequência Ativa das últimas 24h</strong>. Escolha quantos cartões deseja formar e o sistema extrai as combinações com maior densidade estatística.
+            </p>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
+            <button class="btn-sync" onclick="carregarModuloGrade3x3()" style="font-size: 0.82rem; padding: 0.5rem 1rem;">
+              <span>🔄</span> Atualizar Grade PPT
+            </button>
+            <div id="grade3x3-status-ppt" style="font-size: 0.78rem; color: var(--text-muted); text-align: right;">
+              Carregando dados da PPT...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid Principal: Tabuleiro do Jogo da Velha + Painel de Configuração -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- CARD 1: O TABULEIRO VISUAL (JOGO DA VELHA) -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <div>
+                <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0;">Tabuleiro da Grade 3x3</h3>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Baseada nos grupos do 1º e 2º prêmio da PPT</div>
+              </div>
+              <span id="grade3x3-badge-bichos" class="badge-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid var(--primary); font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 6px;">
+                Carregando...
+              </span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 0.5rem 0;">
+            <div class="grade3x3-board" id="grade3x3-visual-board">
+              <!-- Células preenchidas via JS -->
+              <div class="grade-cell grade-cell-vertice" id="gcell-0-0">-</div>
+              <div class="grade-cell grade-cell-diff" id="gcell-0-1">-</div>
+              <div class="grade-cell grade-cell-vertice" id="gcell-0-2">-</div>
+              <div class="grade-cell grade-cell-diff" id="gcell-1-0">-</div>
+              <div class="grade-cell grade-cell-center" id="gcell-1-1">-</div>
+              <div class="grade-cell grade-cell-diff" id="gcell-1-2">-</div>
+              <div class="grade-cell grade-cell-vertice" id="gcell-2-0">-</div>
+              <div class="grade-cell grade-cell-diff" id="gcell-2-1">-</div>
+              <div class="grade-cell grade-cell-vertice" id="gcell-2-2">-</div>
+            </div>
+
+            <!-- Legenda da Grade -->
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; font-size: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="width: 10px; height: 10px; border-radius: 3px; background: #38bdf8;"></span>
+                <span style="color: var(--text-muted);">Vértices (Grupos PPT)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="width: 10px; height: 10px; border-radius: 3px; background: #f59e0b;"></span>
+                <span style="color: var(--text-muted);">Diferença Estrita ("Pauzinhos")</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="width: 10px; height: 10px; border-radius: 3px; background: #10b981;"></span>
+                <span style="color: var(--text-muted);">Eixo Central</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.25); border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+            💡 <strong>Regra Matemática:</strong> Os vértices recebem os dígitos dos grupos do 1º e 2º prêmio da PPT. As bordas contam estritamente os números intermediários entre os extremos. O centro calcula a distância horizontal entre as bordas laterais.
+          </div>
+        </div>
+
+        <!-- CARD 2: CONFIGURADOR DE JOGO DO USUÁRIO -->
+        <div class="card" style="display: flex; flex-direction: column;">
+          <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0;">Configurar Minha Aposta</h3>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">Personalize quantos bilhetes e em qual modalidade quer jogar</div>
+          </div>
+
+          <!-- 1. Quantidade de Cartões (Top-K) -->
+          <div style="margin-bottom: 1.1rem;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
+              Quantos Cartões Deseja Formar? (Top-K)
+            </label>
+            <div class="btn-group-pills" id="group-qtd-cartoes">
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(1)">1 Cartão</button>
+              <button type="button" class="btn-pill-k active" onclick="setQtdCartoesGrade(3)">3 Cartões</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(5)">5 Cartões</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(10)">10 Cartões</button>
+              <button type="button" class="btn-pill-k" onclick="setQtdCartoesGrade(20)">20 Cartões</button>
+            </div>
+          </div>
+
+          <!-- 2. Modalidade -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.1rem;">
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                Modalidade
+              </label>
+              <select id="grade3x3-select-modalidade" class="filter-select" onchange="atualizarResumoFinanceiroGrade()" style="width: 100%;">
+                <option value="centena" selected>Centena (Paga até 600x)</option>
+                <option value="milhar">Milhar (Paga até 4.000x)</option>
+                <option value="dezena">Dezena (Paga até 60x)</option>
+                <option value="grupo">Grupo (Paga até 18x)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                Posição do Prêmio
+              </label>
+              <select id="grade3x3-select-posicao" class="filter-select" onchange="atualizarResumoFinanceiroGrade()" style="width: 100%;">
+                <option value="cabeca" selected>Na Cabeça (1º Prêmio)</option>
+                <option value="cercado">Cercado (1º ao 5º Prêmio)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 3. Valor da Aposta e Filtro Opcional -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                Valor por Cartão (R$)
+              </label>
+              <input type="number" id="grade3x3-valor-aposta" class="filter-input" value="1.00" min="0.5" step="0.5" oninput="atualizarResumoFinanceiroGrade()" style="width: 100%;">
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                Filtrar por Bicho (Opcional)
+              </label>
+              <select id="grade3x3-select-bicho" class="filter-select" style="width: 100%;">
+                <option value="Todos">Todos os Bichos da Grade</option>
+                <!-- Preenchido via JS com os 25 bichos -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Resumo Financeiro Preview -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; font-size: 0.82rem;">
+              <span style="color: var(--text-muted);">Custo Total da Rodada:</span>
+              <strong id="grade3x3-preview-custo" style="color: var(--text-main); font-size: 1rem;">R$ 3,00</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
+              <span style="color: var(--text-muted);">Prêmio Máximo por Bilhete:</span>
+              <strong id="grade3x3-preview-premio" style="color: var(--primary); font-size: 1rem;">R$ 600,00</strong>
+            </div>
+          </div>
+
+          <!-- Botão Gerar -->
+          <button id="btn-gerar-grade3x3" class="btn-action-primary" onclick="executarGeradorGrade3x3()" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <span>⚡</span> GERAR CARTÕES OTIMIZADOS
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- SEÇÃO DOS CARTÕES GERADOS -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin: 0;">
+              Bilhetes Selecionados pelo Algoritmo Multicamada
+            </h3>
+            <div style="font-size: 0.78rem; color: var(--text-muted);" id="grade3x3-info-resultado">
+              Clique em "Gerar Cartões Otimizados" para extrair as melhores opções.
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 0.5rem;" id="grade3x3-botoes-lote">
+            <button class="btn-outline-small" onclick="copiarTodosCartoesGrade()" title="Copiar lista de números">
+              📋 Copiar Bilhetes
+            </button>
+            <button class="btn-primary-small" onclick="enviarTodosGradeParaFila()" title="Enviar para a Fila de Apostas / AutoPilot">
+              🚀 Enviar para a Fila
+            </button>
+          </div>
+        </div>
+
+        <!-- Container dos Cards Gerados -->
+        <div id="grade3x3-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+          <!-- Preenchido via JS -->
+          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem;">
+            Carregando sugestões com base na grade ativa...
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
     <div id="tab-regras" class="tab-content">
       
       <!-- Banner Educacional do Zazá -->
@@ -1140,6 +1345,6 @@
     <span id="toast-msg">Mensagem</span>
   </div>
 
-  <script src="/js/app.js?v=3.3"></script>
+  <script src="/js/app.js?v=4.0"></script>
 </body>
 </html>

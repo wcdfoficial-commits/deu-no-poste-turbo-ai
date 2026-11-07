@@ -19,6 +19,7 @@ from database import (
 from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
 from auto_pilot import auto_pilot
+from grade3x3_engine import gerar_top_k_grade3x3, obter_dados_contexto, build_grade_3x3
 
 app = FastAPI(title="DEU NO POSTE TURBO AI", version="2.0")
 
@@ -325,6 +326,57 @@ def api_autopilot_executar():
 @app.get("/api/assertividade/monitoramento")
 def api_assertividade_monitoramento():
     return obter_metricas_assertividade_longo_prazo(limite=30)
+
+
+
+# ==============================================================================
+# MÓDULO GRADE 3X3 TURBO (TOP-K) + PUXADAS & HISTÓRICO 24H
+# ==============================================================================
+class Grade3x3GerarRequest(BaseModel):
+    qtd_cartoes: Optional[int] = 3
+    modalidade: Optional[str] = "centena"
+    posicao: Optional[str] = "cabeca"
+    valor_aposta: Optional[float] = 1.0
+    bicho_preferido: Optional[str] = None
+    data_alvo: Optional[str] = None
+
+class Grade3x3FilaRequest(BaseModel):
+    apostas: List[str]
+    tipo: str
+    custo_por_rodada: float
+    id_sorteio_gatilho: Optional[int] = None
+    nome_estrategia: Optional[str] = "Grade 3x3 Turbo (Top-K)"
+
+@app.get("/api/grade-3x3/info")
+def api_grade3x3_info(data_alvo: Optional[str] = None):
+    ctx = obter_dados_contexto(data_alvo)
+    grid = build_grade_3x3(ctx["g1"], ctx["g2"])
+    return {
+        "status": "success",
+        "contexto": ctx,
+        "grade_3x3": grid
+    }
+
+@app.post("/api/grade-3x3/gerar")
+def api_grade3x3_gerar(req: Grade3x3GerarRequest):
+    return gerar_top_k_grade3x3(
+        qtd_cartoes=req.qtd_cartoes or 3,
+        modalidade=req.modalidade or "centena",
+        posicao=req.posicao or "cabeca",
+        valor_aposta=req.valor_aposta or 1.0,
+        bicho_preferido=req.bicho_preferido,
+        data_alvo=req.data_alvo
+    )
+
+@app.post("/api/grade-3x3/enviar-fila")
+def api_grade3x3_enviar_fila(req: Grade3x3FilaRequest):
+    return adicionar_aposta_fila(
+        nome_estrategia=req.nome_estrategia or "Grade 3x3 Turbo (Top-K)",
+        tipo=req.tipo,
+        apostas=req.apostas,
+        custo_por_rodada=req.custo_por_rodada,
+        id_sorteio_gatilho=req.id_sorteio_gatilho
+    )
 
 # Montar arquivos estáticos do frontend
 static_dir = os.path.join(os.path.dirname(__file__), "static")

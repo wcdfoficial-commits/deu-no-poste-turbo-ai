@@ -1746,3 +1746,157 @@ tbody tr:hover {
   background: var(--primary);
   color: #000;
 }
+
+
+/* ==========================================================================
+   ESTILOS DO MÓDULO GRADE 3X3 TURBO (TOP-K)
+   ========================================================================== */
+.grade3x3-board {
+  display: grid;
+  grid-template-columns: repeat(3, 85px);
+  grid-template-rows: repeat(3, 85px);
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+.grade-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 900;
+  border-radius: var(--radius-sm);
+  transition: all 0.25s ease;
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.grade-cell:hover {
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+.grade-cell-vertice {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 2px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.grade-cell-diff {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 2px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+}
+
+.grade-cell-center {
+  background: rgba(16, 185, 129, 0.16);
+  color: #10b981;
+  border: 2px solid rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+}
+
+.btn-group-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-pill-k {
+  flex: 1;
+  min-width: 60px;
+  padding: 0.55rem 0.6rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.btn-pill-k:hover {
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--text-main);
+  border-color: var(--border-focus);
+}
+
+.btn-pill-k.active {
+  background: var(--primary);
+  color: #000;
+  border-color: var(--primary);
+  box-shadow: 0 0 12px var(--primary-glow);
+}
+
+/* Card Individual de Bilhete Otimizado */
+.cartao-grade-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cartao-grade-box:hover {
+  border-color: var(--border-focus);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+}
+
+.cartao-grade-box::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+}
+
+.cartao-grade-box.top-1::before {
+  background: var(--accent-gold);
+}
+
+.cartao-score-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.cartao-motivo-tag {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-bottom: 0.25rem;
+}
+
+.cartao-motivo-tag::before {
+  content: "•";
+  color: var(--accent);
+  font-weight: 900;
+}

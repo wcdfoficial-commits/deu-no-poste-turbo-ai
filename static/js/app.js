@@ -2067,3 +2067,327 @@ function renderizarBichosZaza() {
     </div>
   `).join("");
 }
+
+
+
+// ==============================================================================
+// MÓDULO GRADE 3X3 TURBO (TOP-K) + PUXADAS & HISTÓRICO 24H
+// ==============================================================================
+let grade3x3State = {
+  qtdCartoes: 3,
+  dadosAtuais: null,
+  cartoesGerados: [],
+  carregando: false
+};
+
+function setQtdCartoesGrade(k) {
+  grade3x3State.qtdCartoes = k;
+  const pills = document.querySelectorAll("#group-qtd-cartoes .btn-pill-k");
+  pills.forEach(p => {
+    if (p.textContent.includes(`${k} Cartão`) || p.textContent.includes(`${k} Cartões`)) {
+      p.classList.add("active");
+    } else {
+      p.classList.remove("active");
+    }
+  });
+  atualizarResumoFinanceiroGrade();
+  executarGeradorGrade3x3();
+}
+
+function atualizarResumoFinanceiroGrade() {
+  const modalidade = document.getElementById("grade3x3-select-modalidade")?.value || "centena";
+  const posicao = document.getElementById("grade3x3-select-posicao")?.value || "cabeca";
+  const valorInput = document.getElementById("grade3x3-valor-aposta");
+  const valor = parseFloat(valorInput?.value || 1.0) || 1.0;
+  const k = grade3x3State.qtdCartoes || 3;
+
+  const mults = {
+    centena: { cabeca: 600.0, cercado: 120.0 },
+    milhar: { cabeca: 4000.0, cercado: 800.0 },
+    dezena: { cabeca: 60.0, cercado: 12.0 },
+    grupo: { cabeca: 18.0, cercado: 3.6 }
+  };
+
+  const multAtivo = mults[modalidade] ? mults[modalidade][posicao] : 600.0;
+  const custoTotal = k * valor;
+  const premioPotencial = valor * multAtivo;
+
+  const custoEl = document.getElementById("grade3x3-preview-custo");
+  const premioEl = document.getElementById("grade3x3-preview-premio");
+
+  if (custoEl) custoEl.textContent = `R$ ${custoTotal.toFixed(2).replace('.', ',')}`;
+  if (premioEl) premioEl.textContent = `R$ ${premioPotencial.toFixed(2).replace('.', ',')}`;
+}
+
+async function carregarModuloGrade3x3() {
+  const statusPptEl = document.getElementById("grade3x3-status-ppt");
+  const badgeBichosEl = document.getElementById("grade3x3-badge-bichos");
+  const selectBicho = document.getElementById("grade3x3-select-bicho");
+
+  if (statusPptEl) statusPptEl.textContent = "Carregando dados da PPT...";
+
+  try {
+    const res = await fetch("/api/grade-3x3/info");
+    const data = await res.json();
+    if (data.status === "success") {
+      grade3x3State.dadosAtuais = data;
+
+      // Preencher o tabuleiro visual
+      const grid = data.grade_3x3.matriz;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const cellEl = document.getElementById(`gcell-${r}-${c}`);
+          if (cellEl) {
+            cellEl.textContent = grid[r][c];
+            cellEl.title = `Linha ${r+1}, Coluna ${c+1}: Dígito ${grid[r][c]}`;
+          }
+        }
+      }
+
+      // Preencher status da PPT
+      const ctx = data.contexto;
+      if (statusPptEl) {
+        statusPptEl.innerHTML = `PPT: <strong>${ctx.ppt_data || 'Hoje'}</strong> | 1º: <strong>G${ctx.g1} (${ctx.bicho_1})</strong> • 2º: <strong>G${ctx.g2} (${ctx.bicho_2})</strong>`;
+      }
+      if (badgeBichosEl) {
+        badgeBichosEl.textContent = `${ctx.bicho_1} + ${ctx.bicho_2}`;
+      }
+
+      // Popular select de bichos se ainda não preenchido
+      if (selectBicho && selectBicho.options.length <= 1 && listaBichosCache && listaBichosCache.length > 0) {
+        listaBichosCache.forEach(b => {
+          const opt = document.createElement("option");
+          opt.value = b.nome;
+          opt.textContent = `${b.icone} Grupo ${b.grupo} - ${b.nome}`;
+          selectBicho.appendChild(opt);
+        });
+      }
+
+      atualizarResumoFinanceiroGrade();
+      await executarGeradorGrade3x3();
+    }
+  } catch (err) {
+    console.error("Erro ao carregar módulo Grade 3x3:", err);
+    if (statusPptEl) statusPptEl.textContent = "Erro de conexão ao carregar PPT.";
+  }
+}
+
+async function executarGeradorGrade3x3() {
+  if (grade3x3State.carregando) return;
+  grade3x3State.carregando = true;
+
+  const container = document.getElementById("grade3x3-cards-container");
+  const infoResEl = document.getElementById("grade3x3-info-resultado");
+  const btnGerar = document.getElementById("btn-gerar-grade3x3");
+
+  const modalidade = document.getElementById("grade3x3-select-modalidade")?.value || "centena";
+  const posicao = document.getElementById("grade3x3-select-posicao")?.value || "cabeca";
+  const valor = parseFloat(document.getElementById("grade3x3-valor-aposta")?.value || 1.0) || 1.0;
+  const bichoPref = document.getElementById("grade3x3-select-bicho")?.value || "Todos";
+  const k = grade3x3State.qtdCartoes || 3;
+
+  if (container) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        <div class="spinner" style="margin: 0 auto 0.75rem auto;"></div>
+        <div>Processando cruzamento da Grade 3x3 com Puxadas e Histórico 24h...</div>
+      </div>
+    `;
+  }
+  if (btnGerar) btnGerar.disabled = true;
+
+  try {
+    const res = await fetch("/api/grade-3x3/gerar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        qtd_cartoes: k,
+        modalidade: modalidade,
+        posicao: posicao,
+        valor_aposta: valor,
+        bicho_preferido: bichoPref === "Todos" ? null : bichoPref
+      })
+    });
+    const data = await res.json();
+
+    if (data.status === "success") {
+      grade3x3State.cartoesGerados = data.cartoes || [];
+      renderizarCartoesGrade(data);
+    } else {
+      if (container) container.innerHTML = `<div style="grid-column: 1 / -1; color: var(--danger); text-align: center; padding: 2rem;">Não foi possível gerar os cartões.</div>`;
+    }
+  } catch (err) {
+    console.error("Erro na geração de cartões Grade 3x3:", err);
+    if (container) container.innerHTML = `<div style="grid-column: 1 / -1; color: var(--danger); text-align: center; padding: 2rem;">Erro ao conectar com a API.</div>`;
+  } finally {
+    grade3x3State.carregando = false;
+    if (btnGerar) btnGerar.disabled = false;
+  }
+}
+
+function renderizarCartoesGrade(data) {
+  const container = document.getElementById("grade3x3-cards-container");
+  const infoResEl = document.getElementById("grade3x3-info-resultado");
+  if (!container) return;
+
+  const cartoes = data.cartoes || [];
+  const params = data.parametros || {};
+
+  if (infoResEl) {
+    infoResEl.innerHTML = `Gerados <strong>${cartoes.length} bilhetes</strong> de <strong>${params.modalidade?.toUpperCase()}</strong> (${params.posicao === 'cabeca' ? 'Na Cabeça' : '1º ao 5º'}) • Custo Total: <strong>R$ ${params.custo_total?.toFixed(2).replace('.', ',')}</strong>`;
+  }
+
+  if (cartoes.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
+        Nenhum bilhete encontrado para o filtro selecionado. Tente mudar o bicho ou a quantidade de cartões.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cartoes.map((c, idx) => {
+    const isTop1 = idx === 0;
+    const scoreColor = c.score >= 10.0 ? "var(--accent-gold)" : (c.score >= 8.0 ? "var(--primary)" : "var(--accent)");
+    
+    return `
+      <div class="cartao-grade-box ${isTop1 ? 'top-1' : ''}">
+        <div>
+          <!-- Topo do Card: Rank e Score -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <span style="font-size: 0.72rem; font-weight: 800; color: ${isTop1 ? 'var(--accent-gold)' : 'var(--text-muted)'}; letter-spacing: 0.5px;">
+              CARTÃO #${idx + 1} ${isTop1 ? '★ DESTAQUE' : ''}
+            </span>
+            <span class="cartao-score-tag" style="border-color: ${scoreColor}; color: ${scoreColor}; background: rgba(0,0,0,0.3);">
+              ★ ${c.score} • ${c.nivel}
+            </span>
+          </div>
+
+          <!-- Número Grande e Bicho -->
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.65rem;">
+            <div style="font-family: var(--font-mono); font-size: 1.85rem; font-weight: 900; color: #fff; letter-spacing: 1px;">
+              ${c.numero}
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">
+              <span style="font-size: 1.25rem;">${c.icone || '🎯'}</span>
+              <span>${c.bicho}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">(G${c.grupo})</span>
+            </div>
+          </div>
+
+          <!-- Motivos Estratégicos -->
+          <div style="background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 0.6rem 0.75rem; margin-bottom: 0.85rem;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.5px;">
+              Motivos da Seleção:
+            </div>
+            ${c.motivos.map(m => `<div class="cartao-motivo-tag">${m}</div>`).join("")}
+          </div>
+        </div>
+
+        <!-- Ações do Cartão -->
+        <div style="display: flex; gap: 0.4rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.65rem;">
+          <button class="btn-outline-small" style="flex: 1;" onclick="copiarCartaoGrade('${c.numero}')" title="Copiar este número">
+            📋 Copiar
+          </button>
+          <button class="btn-primary-small" style="flex: 1.2;" onclick="enviarCartaoGradeParaFila('${c.numero}', '${c.bicho}')" title="Adicionar à fila de apostas">
+            🎫 Fila
+          </button>
+          <button class="btn-outline-small" style="flex: 1;" onclick="enviarCartaoParaConferidor('${c.numero}')" title="Testar no conferidor">
+            🔍 Conferir
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function copiarCartaoGrade(numero) {
+  navigator.clipboard.writeText(numero).then(() => {
+    alert(`Número ${numero} copiado para a área de transferência!`);
+  }).catch(() => {
+    alert(`Número: ${numero}`);
+  });
+}
+
+function copiarTodosCartoesGrade() {
+  if (!grade3x3State.cartoesGerados || grade3x3State.cartoesGerados.length === 0) {
+    alert("Nenhum cartão gerado para copiar.");
+    return;
+  }
+  const lista = grade3x3State.cartoesGerados.map(c => c.numero).join(", ");
+  navigator.clipboard.writeText(lista).then(() => {
+    alert(`Todos os ${grade3x3State.cartoesGerados.length} bilhetes copiados:\n${lista}`);
+  });
+}
+
+async function enviarCartaoGradeParaFila(numero, bicho) {
+  const modalidade = document.getElementById("grade3x3-select-modalidade")?.value || "centena";
+  const valor = parseFloat(document.getElementById("grade3x3-valor-aposta")?.value || 1.0) || 1.0;
+  
+  try {
+    const res = await fetch("/api/grade-3x3/enviar-fila", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome_estrategia: `Grade 3x3 Turbo (${bicho})`,
+        tipo: modalidade,
+        apostas: [numero],
+        custo_por_rodada: valor
+      })
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      alert(`Bilhete ${numero} (${bicho}) adicionado à Fila de Apostas com sucesso!`);
+      if (typeof carregarFilaApostas === "function") carregarFilaApostas();
+    } else {
+      alert("Erro ao adicionar bilhete à fila.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erro de conexão ao adicionar à fila.");
+  }
+}
+
+async function enviarTodosGradeParaFila() {
+  if (!grade3x3State.cartoesGerados || grade3x3State.cartoesGerados.length === 0) {
+    alert("Nenhum cartão gerado para enviar à fila.");
+    return;
+  }
+  const modalidade = document.getElementById("grade3x3-select-modalidade")?.value || "centena";
+  const valor = parseFloat(document.getElementById("grade3x3-valor-aposta")?.value || 1.0) || 1.0;
+  const numeros = grade3x3State.cartoesGerados.map(c => c.numero);
+  const totalCusto = numeros.length * valor;
+
+  try {
+    const res = await fetch("/api/grade-3x3/enviar-fila", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome_estrategia: `Grade 3x3 Turbo (Top-${numeros.length})`,
+        tipo: modalidade,
+        apostas: numeros,
+        custo_por_rodada: totalCusto
+      })
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      alert(`Todos os ${numeros.length} bilhetes foram adicionados à Fila de Apostas!`);
+      if (typeof carregarFilaApostas === "function") carregarFilaApostas();
+    } else {
+      alert("Erro ao enviar bilhetes à fila.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erro de comunicação com o servidor.");
+  }
+}
+
+function enviarCartaoParaConferidor(numero) {
+  switchTab("tab-conferidor");
+  const apostaInput = document.getElementById("conferir-apostas");
+  if (apostaInput) {
+    apostaInput.value = numero;
+    apostaInput.scrollIntoView({ behavior: "smooth" });
+    apostaInput.focus();
+  }
+}

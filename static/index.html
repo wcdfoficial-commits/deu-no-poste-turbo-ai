@@ -998,6 +998,9 @@
             <button class="btn-sync" onclick="conferirDuqueComUltimoSorteio()" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;">
               🎯 Conferir com Último Sorteio (BINGO!)
             </button>
+            <button class="btn-sync" onclick="enviarDuqueTurboParaFila()" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff;">
+              🎫 Enviar para Fila de Ciclos
+            </button>
           </div>
         </div>
 
@@ -1164,8 +1167,13 @@
                 <option value="milhar">Apostar no Milhar (4.000x / 800x)</option>
                 <option value="duque_grupo">Duque de Grupo (18,5x)</option>
                 <option value="duque_dezena">Duque de Dezenas (300x)</option>
-                <option value="terno_grupo">Terno de Grupo (130x)</option>
+                <option value="terno_grupo">Terno de Grupo 1º ao 5º (130x)</option>
+                <option value="terno_grupo_1_3">Terno de Grupo Seco 1º ao 3º (1.000x)</option>
                 <option value="terno_dezena">Terno de Dezenas (3.000x)</option>
+                <option value="passe_direto">Passe Direto 1º ao 2º (80x)</option>
+                <option value="passe_vai">Passe Vai 1º ao 5º (40x)</option>
+                <option value="passe_vai_vem_1_2">Passe Invertido 1º ao 2º (40x)</option>
+                <option value="passe_vai_vem_1_5">Passe Invertido 1º ao 5º (20x)</option>
               </select>
             </div>
 
@@ -1381,6 +1389,26 @@
           <div id="puxada-entrada-container">
             <div style="color: var(--text-muted);">Selecione um bicho acima para ver as probabilidades.</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Barra de Ação Rápida Cross-Tab (Puxadas -> Duque Turbo & Zazá) -->
+      <div class="card" id="puxada-acoes-integradas" style="margin-top: 1.5rem; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1.1rem 1.4rem;">
+        <div>
+          <div style="font-weight: 800; color: #fff; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⚡</span> Integração Cruzada Quântica: Puxadas → Estratégias
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Acelere sua montagem: envie o animal selecionado e suas principais puxadas direto para fechamento no <strong>Duque Turbo</strong> ou simulação no <strong>Simulador Zazá</strong> com 1 clique!
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <button type="button" class="btn-sync" onclick="enviarPuxadaParaDuqueTurbo()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 0.55rem 1.1rem; font-weight: 700;">
+            ⚡ Jogar Bicho + Puxadas no Duque Turbo
+          </button>
+          <button type="button" class="btn-sync" onclick="enviarPuxadaParaZaza()" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; padding: 0.55rem 1.1rem; font-weight: 700;">
+            🎓 Simular Passe/Duque no Zazá
+          </button>
         </div>
       </div>
     </div>

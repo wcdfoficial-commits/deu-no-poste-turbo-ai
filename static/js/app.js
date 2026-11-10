@@ -434,6 +434,7 @@ async function carregarBichos() {
     const res = await fetch("/api/bichos");
     if (!res.ok) return;
     listaBichosCache = await res.json();
+    window.bichosGlobais = listaBichosCache;
     
     const selectFiltro = document.getElementById("filtro-bicho");
     const selectPuxada = document.getElementById("puxada-select-bicho");
@@ -1828,13 +1829,33 @@ function atualizarInterfaceModalidadeZaza() {
     if (hintApostas) hintApostas.textContent = "Ex: 44 e 23";
     if (infoRegra) infoRegra.textContent = "Regra da aula: 300x se ambas as dezenas saírem entre os 5 prêmios.";
   } else if (tipo === "terno_grupo") {
-    if (labelApostas) labelApostas.textContent = "3 Animais para Terno de Grupo";
+    if (labelApostas) labelApostas.textContent = "3 Animais para Terno de Grupo (1º ao 5º)";
     if (hintApostas) hintApostas.textContent = "Ex: Cabra, Tigre e Pavão";
     if (infoRegra) infoRegra.textContent = "Regra da aula: 130x se os 3 animais saírem entre os 5 prêmios.";
+  } else if (tipo === "terno_grupo_1_3") {
+    if (labelApostas) labelApostas.textContent = "3 Animais para Terno de Grupo (1º ao 3º Seco)";
+    if (hintApostas) hintApostas.textContent = "Ex: Tigre, Cavalo e Galo (Grupos 22, 11 e 13)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 1.000x se os 3 animais saírem estritamente entre o 1º, 2º e 3º prêmios.";
   } else if (tipo === "terno_dezena") {
     if (labelApostas) labelApostas.textContent = "3 Dezenas para Terno de Dezenas";
     if (hintApostas) hintApostas.textContent = "Ex: 87, 52 e 75";
     if (infoRegra) infoRegra.textContent = "Regra da aula: 3.000x se as 3 dezenas saírem entre os 5 prêmios.";
+  } else if (tipo === "passe_direto") {
+    if (labelApostas) labelApostas.textContent = "2 Animais para Passe Direto (1º ao 2º)";
+    if (hintApostas) hintApostas.textContent = "Ex: Tigre e Cavalo (1º tem que dar Tigre e 2º Cavalo)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 80x se o 1º animal sair na cabeça (1º) e o 2º no 2º prêmio exato.";
+  } else if (tipo === "passe_vai") {
+    if (labelApostas) labelApostas.textContent = "2 Animais para Passe Vai (1º ao 5º)";
+    if (hintApostas) hintApostas.textContent = "Ex: Tigre e Galo (1º tem que dar Tigre e 2º ao 5º Galo)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 40x se o 1º animal sair na cabeça (1º) e o 2º animal sair do 2º ao 5º prêmio.";
+  } else if (tipo === "passe_vai_vem_1_2") {
+    if (labelApostas) labelApostas.textContent = "2 Animais para Passe Invertido (1º ao 2º)";
+    if (hintApostas) hintApostas.textContent = "Ex: Cavalo e Tigre (qualquer um no 1º e o outro no 2º)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 40x se um sair no 1º prêmio e o outro no 2º prêmio (ordem invertida permitida).";
+  } else if (tipo === "passe_vai_vem_1_5") {
+    if (labelApostas) labelApostas.textContent = "2 Animais para Passe Invertido (1º ao 5º)";
+    if (hintApostas) hintApostas.textContent = "Ex: Galo e Tigre (um no 1º prêmio e o outro do 2º ao 5º)";
+    if (infoRegra) infoRegra.textContent = "Regra da aula: 20x se um sair no 1º prêmio e o outro do 2º ao 5º prêmio (ordem invertida permitida).";
   }
 
   atualizarMultiplicadorDisplayZaza();
@@ -2938,5 +2959,138 @@ function carregarParSniperDuque(gA, gB) {
   const formSection = document.getElementById("container-bichos-selecionados-duque");
   if (formSection) formSection.scrollIntoView({ behavior: "smooth" });
   showToast(`🎯 Par Sniper carregado! Grupos ${String(gA).padStart(2, '0')} e ${String(gB).padStart(2, '0')}`, "success");
+}
+
+// --------------------------------------------------------------------------
+// INTEGRAÇÃO CRUZADA: DUQUE TURBO -> FILA DE CICLOS
+// --------------------------------------------------------------------------
+async function enviarDuqueTurboParaFila() {
+  if (!duqueTurboState.ultimoFechamento || !duqueTurboState.ultimoFechamento.duques || duqueTurboState.ultimoFechamento.duques.length === 0) {
+    showToast("Gere o fechamento primeiro antes de enviar para a fila!", "warning");
+    return;
+  }
+  
+  const fech = duqueTurboState.ultimoFechamento;
+  const bichosList = window.bichosGlobais || listaBichosCache || [];
+  const bichosNomes = duqueTurboState.bichosSelecionados.map(g => {
+    const b = bichosList.find(x => parseInt(x.grupo, 10) === g) || duqueTurboState.bichosInfoMap[g];
+    return b ? b.nome : `G${g}`;
+  }).join(", ");
+
+  const payload = {
+    nome_estrategia: `Duque Turbo (${fech.modo_rotulo || fech.modo}: ${bichosNomes})`,
+    tipo: "duque_dezena",
+    apostas: fech.duques,
+    custo_por_rodada: fech.custo_total
+  };
+
+  try {
+    const res = await fetch("/api/duque-turbo/enviar-fila", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      showToast(`🎯 Fechamento com ${fech.duques.length} duques adicionado à Fila de Ciclos!`, "success");
+      if (typeof carregarFilaApostas === "function") carregarFilaApostas();
+      switchTab("tab-conferidor");
+    } else {
+      showToast("Erro ao adicionar duques à fila.", "error");
+    }
+  } catch (err) {
+    console.error("Erro ao enviar duques para a fila:", err);
+    showToast("Erro de comunicação ao enviar à fila.", "error");
+  }
+}
+
+// --------------------------------------------------------------------------
+// INTEGRAÇÃO CRUZADA: PUXADAS -> DUQUE TURBO & REGULADOR ZAZÁ
+// --------------------------------------------------------------------------
+async function enviarPuxadaParaDuqueTurbo() {
+  const select = document.getElementById("puxada-select-bicho");
+  if (!select || !select.value) {
+    showToast("Selecione um bicho no radar de puxadas primeiro!", "warning");
+    return;
+  }
+  const bichoOrigem = select.value;
+  try {
+    const res = await fetch(`/api/puxadas?bicho=${encodeURIComponent(bichoOrigem)}`);
+    const data = await res.json();
+    const bichosList = window.bichosGlobais || listaBichosCache || [];
+    
+    // Identificar grupo do bicho de origem
+    const bOrigem = bichosList.find(b => b.nome.toLowerCase() === bichoOrigem.toLowerCase());
+    const gOrigem = bOrigem ? parseInt(bOrigem.grupo, 10) : null;
+    
+    // Pega os 2 animais mais puxados historicamente
+    const puxados = data.este_bicho_puxa || [];
+    const gPuxados = puxados.slice(0, 2).map(p => parseInt(p.grupo, 10));
+    
+    const gruposParaDuque = [];
+    if (gOrigem) gruposParaDuque.push(gOrigem);
+    gPuxados.forEach(g => {
+      if (!gruposParaDuque.includes(g) && gruposParaDuque.length < 3) {
+        gruposParaDuque.push(g);
+      }
+    });
+
+    if (gruposParaDuque.length < 2) {
+      showToast("Não foi possível extrair grupos suficientes para o Duque Turbo.", "warning");
+      return;
+    }
+
+    duqueTurboState.bichosSelecionados = [...gruposParaDuque];
+    switchTab("tab-duqueturbo");
+    renderizarBichosSelecionadosDuque();
+    renderizarCartela25BichosDuque();
+    await executarGerarDuqueTurbo();
+    
+    const formSection = document.getElementById("container-bichos-selecionados-duque");
+    if (formSection) formSection.scrollIntoView({ behavior: "smooth" });
+    showToast(`⚡ Duque Turbo armado com ${bichoOrigem} + Top Puxadas!`, "success");
+  } catch (e) {
+    console.error(e);
+    showToast("Erro ao carregar dados de puxadas para o Duque Turbo.", "error");
+  }
+}
+
+async function enviarPuxadaParaZaza() {
+  const select = document.getElementById("puxada-select-bicho");
+  if (!select || !select.value) {
+    showToast("Selecione um bicho no radar primeiro!", "warning");
+    return;
+  }
+  const bichoOrigem = select.value;
+  try {
+    const res = await fetch(`/api/puxadas?bicho=${encodeURIComponent(bichoOrigem)}`);
+    const data = await res.json();
+    
+    const puxados = data.este_bicho_puxa || [];
+    if (puxados.length === 0) {
+      showToast("Nenhuma puxada encontrada para este animal.", "warning");
+      return;
+    }
+    const bichoPuxado = puxados[0].bicho;
+
+    switchTab("tab-regras");
+    const tipoEl = document.getElementById("zaza-tipo");
+    const posEl = document.getElementById("zaza-posicao");
+    const apoEl = document.getElementById("zaza-apostas");
+
+    if (tipoEl) tipoEl.value = "passe_direto";
+    if (posEl) posEl.value = "cabeca";
+    if (apoEl) apoEl.value = `${bichoOrigem} e ${bichoPuxado}`;
+
+    atualizarInterfaceModalidadeZaza();
+    await executarConferenciaZaza();
+    
+    const confForm = document.getElementById("form-conferir-zaza");
+    if (confForm) confForm.scrollIntoView({ behavior: "smooth" });
+    showToast(`🎓 Simulando Passe Direto no Zazá: ${bichoOrigem} e ${bichoPuxado}!`, "info");
+  } catch (e) {
+    console.error(e);
+    showToast("Erro ao simular no Zazá.", "error");
+  }
 }
 

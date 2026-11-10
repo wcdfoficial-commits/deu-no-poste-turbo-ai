@@ -368,6 +368,13 @@ class DuqueConferirRequest(BaseModel):
     valor_por_duque: Optional[float] = 1.0
     id_sorteio: Optional[int] = None
 
+class DuqueFilaRequest(BaseModel):
+    apostas: List[str]
+    tipo: Optional[str] = "duque_dezena"
+    custo_por_rodada: float
+    id_sorteio_gatilho: Optional[int] = None
+    nome_estrategia: Optional[str] = "Duque Turbo (3 Bichos)"
+
 @app.get("/api/grade-3x3/sorteios-disponiveis")
 def api_grade3x3_sorteios():
     return listar_sorteios_recentes(limite=25)
@@ -438,6 +445,16 @@ def api_duque_conferir(req: DuqueConferirRequest):
         id_sorteio=req.id_sorteio,
         modo=req.modo or "blindado_pro",
         valor_por_duque=req.valor_por_duque or 1.0
+    )
+
+@app.post("/api/duque-turbo/enviar-fila")
+def api_duque_enviar_fila(req: DuqueFilaRequest):
+    return adicionar_aposta_fila(
+        nome_estrategia=req.nome_estrategia or "Duque Turbo (3 Bichos)",
+        tipo=req.tipo or "duque_dezena",
+        apostas=req.apostas,
+        custo_por_rodada=req.custo_por_rodada,
+        id_sorteio_gatilho=req.id_sorteio_gatilho
     )
 
 # Montar arquivos estáticos do frontend

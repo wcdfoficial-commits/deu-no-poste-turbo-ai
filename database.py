@@ -119,6 +119,17 @@ REGRAS_ZAZA = {
         "qtd_elementos": 3,
         "exemplo_aula": "Cabra, Tigre e Pavão (Grupos 06, 22 e 19)"
     },
+    "terno_grupo_1_3": {
+        "codigo": "terno_grupo_1_3",
+        "nome": "Terno de Grupo (1º ao 3º)",
+        "descricao": "Aposta em 3 animais para saírem estritamente entre o 1º, 2º e 3º prêmios. Cotação alta!",
+        "mult_cabeca": None,
+        "mult_cercado": 1000.0,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 3,
+        "exemplo_aula": "Tigre, Cavalo e Galo (Grupos 22, 11 e 13)"
+    },
     "terno_dezena": {
         "codigo": "terno_dezena",
         "nome": "Terno de Dezena",
@@ -129,6 +140,50 @@ REGRAS_ZAZA = {
         "suporta_cercado": True,
         "qtd_elementos": 3,
         "exemplo_aula": "87, 52 e 75"
+    },
+    "passe_direto": {
+        "codigo": "passe_direto",
+        "nome": "Passe Direto (1º ao 2º)",
+        "descricao": "Escolhe 2 animais. O 1º animal TEM que sair no 1º prêmio e o 2º no 2º prêmio.",
+        "mult_cabeca": 80.0,
+        "mult_cercado": 80.0,
+        "suporta_cabeca": True,
+        "suporta_cercado": False,
+        "qtd_elementos": 2,
+        "exemplo_aula": "Tigre e Cavalo (Grupos 22 e 11)"
+    },
+    "passe_vai": {
+        "codigo": "passe_vai",
+        "nome": "Passe Vai (1º ao 5º)",
+        "descricao": "Escolhe 2 animais. O 1º animal TEM que sair no 1º prêmio e o 2º do 2º ao 5º prêmio.",
+        "mult_cabeca": None,
+        "mult_cercado": 40.0,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 2,
+        "exemplo_aula": "Tigre e Galo (Grupos 22 e 13)"
+    },
+    "passe_vai_vem_1_2": {
+        "codigo": "passe_vai_vem_1_2",
+        "nome": "Passe Invertido (1º ao 2º)",
+        "descricao": "Qualquer um dos 2 animais no 1º prêmio e o outro no 2º prêmio (Vai-e-Vem).",
+        "mult_cabeca": 40.0,
+        "mult_cercado": 40.0,
+        "suporta_cabeca": True,
+        "suporta_cercado": False,
+        "qtd_elementos": 2,
+        "exemplo_aula": "Cavalo e Tigre (Invertido 1º ao 2º)"
+    },
+    "passe_vai_vem_1_5": {
+        "codigo": "passe_vai_vem_1_5",
+        "nome": "Passe Invertido (1º ao 5º)",
+        "descricao": "Qualquer um dos 2 animais no 1º prêmio e o outro do 2º ao 5º prêmio (Vai-e-Vem Cercado).",
+        "mult_cabeca": None,
+        "mult_cercado": 20.0,
+        "suporta_cabeca": False,
+        "suporta_cercado": True,
+        "qtd_elementos": 2,
+        "exemplo_aula": "Galo e Tigre (Invertido 1º ao 5º)"
     }
 }
 
@@ -272,6 +327,61 @@ EXEMPLOS_AULA_ZAZA = [
         "mult_esperado": 3000.0,
         "retorno_esperado": 30000.0,
         "explicacao": "Dezenas 87 (1º), 52 (3º) e 75 (4º). As 3 foram sorteadas! Paga 3.000x: R$ 10 vira R$ 30.000."
+    },
+    {
+        "id": "ex_passe_direto",
+        "titulo": "13. Passe Direto Tigre (1º) e Cavalo (2º)",
+        "tipo": "passe_direto",
+        "posicao": "cabeca",
+        "valor": 10.0,
+        "aposta": "Tigre e Cavalo",
+        "mult_esperado": 80.0,
+        "retorno_esperado": 800.0,
+        "explicacao": "Tigre na Cabeça (1º) e Cavalo no 2º prêmio! Na ordem exata! Paga 80x: R$ 10 vira R$ 800."
+    },
+    {
+        "id": "ex_passe_vai",
+        "titulo": "14. Passe Vai Tigre (1º) e Galo (3º)",
+        "tipo": "passe_vai",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "Tigre e Galo",
+        "mult_esperado": 40.0,
+        "retorno_esperado": 400.0,
+        "explicacao": "Tigre na Cabeça (1º) e Galo no 3º prêmio (do 2º ao 5º)! Paga 40x: R$ 10 vira R$ 400."
+    },
+    {
+        "id": "ex_passe_invertido_1_2",
+        "titulo": "15. Passe Invertido Cavalo e Tigre (1º e 2º)",
+        "tipo": "passe_vai_vem_1_2",
+        "posicao": "cabeca",
+        "valor": 10.0,
+        "aposta": "Cavalo e Tigre",
+        "mult_esperado": 40.0,
+        "retorno_esperado": 400.0,
+        "explicacao": "Passe Vai-e-Vem: Tanto faz qual bicho vem na cabeça. 1º Tigre e 2º Cavalo bateu! Paga 40x: R$ 10 vira R$ 400."
+    },
+    {
+        "id": "ex_passe_invertido_1_5",
+        "titulo": "16. Passe Invertido Galo e Tigre (1º ao 5º)",
+        "tipo": "passe_vai_vem_1_5",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "Galo e Tigre",
+        "mult_esperado": 20.0,
+        "retorno_esperado": 200.0,
+        "explicacao": "Passe Vai-e-Vem 1º ao 5º: Um na cabeça e outro até o 5º prêmio. Paga 20x: R$ 10 vira R$ 200."
+    },
+    {
+        "id": "ex_terno_grupo_1_3",
+        "titulo": "17. Terno de Grupo 1º ao 3º: Tigre, Cavalo e Galo",
+        "tipo": "terno_grupo_1_3",
+        "posicao": "cercado",
+        "valor": 10.0,
+        "aposta": "Tigre, Cavalo e Galo",
+        "mult_esperado": 1000.0,
+        "retorno_esperado": 10000.0,
+        "explicacao": "Cravou os 3 primeiros prêmios! Tigre (1º), Cavalo (2º) e Galo (3º). Cotação alta de 1.000x: R$ 10 vira R$ 10.000!"
     }
 ]
 
@@ -282,10 +392,20 @@ def normalizar_tipo_aposta(tipo: str) -> str:
         return "duque_grupo"
     if t in ["duplo_dezena", "dupla_dezena", "duque_de_dezena", "duplo_de_dezena", "duque_dezena"]:
         return "duque_dezena"
+    if t in ["terno_grupo_1_3", "terno_1_3", "terno_de_grupo_1_ao_3", "terno_de_grupo_1_3", "terno_seco"]:
+        return "terno_grupo_1_3"
     if t in ["terno_de_grupo", "terno_grupo"]:
         return "terno_grupo"
     if t in ["terno_de_dezena", "terno_dezena"]:
         return "terno_dezena"
+    if t in ["passe_direto", "passe_1_2", "passe_1º_ao_2º", "passe_seco", "passe"]:
+        return "passe_direto"
+    if t in ["passe_vai", "passe_1_5", "passe_1º_ao_5º", "passe_vai_1_5"]:
+        return "passe_vai"
+    if t in ["passe_vai_vem_1_2", "passe_invertido_1_2", "passe_invertido"]:
+        return "passe_vai_vem_1_2"
+    if t in ["passe_vai_vem_1_5", "passe_invertido_1_5", "passe_vai_vem"]:
+        return "passe_vai_vem_1_5"
     return t
 
 def resolver_grupo_bicho(item: str) -> Optional[Dict[str, Any]]:
@@ -309,7 +429,9 @@ def parsear_combinacoes_aposta(raw_items: List[str], tamanho: int) -> List[List[
     resultado = []
     elementos_puros = []
     for item in raw_items:
-        partes = [p.strip() for p in re.split(r'[,;\-\/eE\s\+]+', str(item)) if p.strip()]
+        # Normaliza conjuncoes ' e ', ' com ', ' x ', ' + ' para virgula evitando quebrar palavras com a letra 'e'
+        cleaned = re.sub(r'\s+(?:e|E|com|COM|x|X|\+)\s+', ',', str(item))
+        partes = [p.strip() for p in re.split(r'[,;\-\/]+|\s{2,}', cleaned) if p.strip()]
         if len(partes) == tamanho:
             resultado.append(partes)
         elif len(partes) > tamanho:
@@ -537,6 +659,99 @@ def conferir_apostas_zaza(
                     p2 = next(p for p in premios_5 if p["dezena"] == d2)
                     p3 = next(p for p in premios_5 if p["dezena"] == d3)
                     premios_atingidos = [f"{p1['premio']} (Dezena {d1})", f"{p2['premio']} (Dezena {d2})", f"{p3['premio']} (Dezena {d3})"]
+
+            elif tipo_norm == "terno_grupo_1_3":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                b3 = resolver_grupo_bicho(comb[2])
+                if not b1 or not b2 or not b3:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"1º ao 3º: {b1['icone']} {b1['nome']} + {b2['icone']} {b2['nome']} + {b3['icone']} {b3['nome']}"
+                g_top3 = [p["grupo"] for p in premios_5[:3]]
+                if b1["grupo"] in g_top3 and b2["grupo"] in g_top3 and b3["grupo"] in g_top3:
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p1 = next(p for p in premios_5[:3] if p["grupo"] == b1["grupo"])
+                    p2 = next(p for p in premios_5[:3] if p["grupo"] == b2["grupo"])
+                    p3 = next(p for p in premios_5[:3] if p["grupo"] == b3["grupo"])
+                    premios_atingidos = [f"{p1['premio']} ({p1['bicho']})", f"{p2['premio']} ({p2['bicho']})", f"{p3['premio']} ({p3['bicho']})"]
+
+            elif tipo_norm == "passe_direto":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                if not b1 or not b2:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"Passe Direto: 1º {b1['icone']} {b1['nome']} (G{b1['grupo']}) e 2º {b2['icone']} {b2['nome']} (G{b2['grupo']})"
+                # 1º animal TEM que sair no 1º prêmio e 2º animal no 2º prêmio
+                if premios_5[0]["grupo"] == b1["grupo"] and premios_5[1]["grupo"] == b2["grupo"]:
+                    hit = True
+                    mult = regra["mult_cabeca"]
+                    premios_atingidos = [f"1º Prêmio ({premios_5[0]['bicho']})", f"2º Prêmio ({premios_5[1]['bicho']})"]
+
+            elif tipo_norm == "passe_vai":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                if not b1 or not b2:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"Passe Vai (1º ao 5º): 1º {b1['icone']} {b1['nome']} + 2º ao 5º {b2['icone']} {b2['nome']}"
+                # 1º animal TEM que sair no 1º prêmio e 2º animal do 2º ao 5º
+                g_resto = [p["grupo"] for p in premios_5[1:5]]
+                if premios_5[0]["grupo"] == b1["grupo"] and b2["grupo"] in g_resto:
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p2 = next(p for p in premios_5[1:5] if p["grupo"] == b2["grupo"])
+                    premios_atingidos = [f"1º Prêmio ({premios_5[0]['bicho']})", f"{p2['premio']} ({p2['bicho']})"]
+
+            elif tipo_norm == "passe_vai_vem_1_2":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                if not b1 or not b2:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"Passe Invertido 1º ao 2º: {b1['icone']} {b1['nome']} e {b2['icone']} {b2['nome']}"
+                if (premios_5[0]["grupo"] == b1["grupo"] and premios_5[1]["grupo"] == b2["grupo"]) or \
+                   (premios_5[0]["grupo"] == b2["grupo"] and premios_5[1]["grupo"] == b1["grupo"]):
+                    hit = True
+                    mult = regra["mult_cabeca"]
+                    premios_atingidos = [f"1º Prêmio ({premios_5[0]['bicho']})", f"2º Prêmio ({premios_5[1]['bicho']})"]
+
+            elif tipo_norm == "passe_vai_vem_1_5":
+                b1 = resolver_grupo_bicho(comb[0])
+                b2 = resolver_grupo_bicho(comb[1])
+                if not b1 or not b2:
+                    detalhes_apostas.append({
+                        "aposta": info_aposta, "valida": False, "acertou": False,
+                        "descricao": "Um ou mais animais inválidos", "multiplicador": 0, "retorno": 0
+                    })
+                    continue
+                info_aposta = f"Passe Invertido 1º ao 5º: {b1['icone']} {b1['nome']} e {b2['icone']} {b2['nome']}"
+                g_cabeca = premios_5[0]["grupo"]
+                g_resto = [p["grupo"] for p in premios_5[1:5]]
+                if (g_cabeca == b1["grupo"] and b2["grupo"] in g_resto):
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p2 = next(p for p in premios_5[1:5] if p["grupo"] == b2["grupo"])
+                    premios_atingidos = [f"1º Prêmio ({premios_5[0]['bicho']})", f"{p2['premio']} ({p2['bicho']})"]
+                elif (g_cabeca == b2["grupo"] and b1["grupo"] in g_resto):
+                    hit = True
+                    mult = regra["mult_cercado"]
+                    p1 = next(p for p in premios_5[1:5] if p["grupo"] == b1["grupo"])
+                    premios_atingidos = [f"1º Prêmio ({premios_5[0]['bicho']})", f"{p1['premio']} ({p1['bicho']})"]
                     
             retorno_item = valor_aposta * mult if hit else 0.0
             if hit:

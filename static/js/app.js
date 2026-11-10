@@ -2593,6 +2593,20 @@ function renderizarBichosSelecionadosDuque() {
     const cores = ["#fbbf24", "#10b981", "#38bdf8"];
     const cor = cores[idx % cores.length];
 
+    const d4 = (g * 4) % 100;
+    const d3 = (d4 - 1 + 100) % 100;
+    const d2 = (d4 - 2 + 100) % 100;
+    const d1 = (d4 - 3 + 100) % 100;
+    const todasDez = [
+      String(d1).padStart(2, '0'),
+      String(d2).padStart(2, '0'),
+      String(d3).padStart(2, '0'),
+      String(d4 === 0 ? "00" : d4).padStart(2, '0')
+    ];
+    
+    const infoFech = duqueTurboState.ultimoFechamento?.grupos?.find(x => x.grupo === g);
+    const dezenasAtivas = infoFech ? infoFech.dezenas_escolhidas.join(", ") : todasDez.slice(0, 2).join(", ");
+
     html += `
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid ${cor}40; background: ${cor}10;">
         <div style="display: flex; align-items: center; gap: 0.65rem;">
@@ -2605,7 +2619,7 @@ function renderizarBichosSelecionadosDuque() {
               </span>
             </div>
             <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
-              Dezenas: <strong style="color: ${cor};">${(bichoObj.dezenas || []).join(", ") || "Auto-filtradas"}</strong>
+              Dezenas em Jogo: <strong style="color: ${cor};">${dezenasAtivas}</strong> <span style="font-size: 0.72rem; color: var(--text-muted);">(Todas: ${todasDez.join(", ")})</span>
             </div>
           </div>
         </div>
@@ -2705,7 +2719,7 @@ function renderizarResultadoDuqueTurbo(data) {
       hedgeHtml += `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; font-size: 0.8rem;">
           <span style="color: #fff;">Duque de Grupo: <strong>${h.label}</strong></span>
-          <span style="color: #10b981; font-weight: 700;">Aposta R$ 1,00 $\\rightarrow$ Paga R$ ${h.premio_potencial.toFixed(2)}</span>
+          <span style="color: #10b981; font-weight: 700;">Aposta R$ 1,00 → Paga R$ ${h.premio_potencial.toFixed(2)}</span>
         </div>
       `;
     });
@@ -2713,7 +2727,7 @@ function renderizarResultadoDuqueTurbo(data) {
       hedgeHtml += `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; font-size: 0.8rem; margin-top: 0.3rem;">
           <span style="color: #fff;">🚀 Super Bônus Terno de Grupo: <strong>${data.hedge_terno_grupo.label}</strong></span>
-          <span style="color: #fbbf24; font-weight: 800;">Aposta R$ 1,00 $\\rightarrow$ Paga R$ ${data.hedge_terno_grupo.premio_potencial.toFixed(2)}</span>
+          <span style="color: #fbbf24; font-weight: 800;">Aposta R$ 1,00 → Paga R$ ${data.hedge_terno_grupo.premio_potencial.toFixed(2)}</span>
         </div>
       `;
     }

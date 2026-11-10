@@ -436,6 +436,7 @@
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('tab-predicoes')">🎯 Palpites & Fechamentos IA</button>
       <button class="tab-btn" onclick="switchTab('tab-grade3x3')">🎲 Grade 3x3 Turbo (Top-K)</button>
+      <button class="tab-btn" onclick="switchTab('tab-duqueturbo')">⚡ Duque Turbo (3 Bichos)</button>
       <button class="tab-btn" onclick="switchTab('tab-regras')">🎓 Regras & Simulador Zazá</button>
       <button class="tab-btn" onclick="switchTab('tab-resultados')">📊 Resultados & Filtros</button>
       <button class="tab-btn" onclick="switchTab('tab-puxadas')">🔄 Radar de Puxadas Interativo</button>
@@ -837,6 +838,253 @@
 
     </div>
 
+    <!-- ========================================================================
+         TAB: DUQUE TURBO (FECHAMENTO 3 BICHOS & BLINDAGEM PRO)
+         ======================================================================== -->
+    <div id="tab-duqueturbo" class="tab-content">
+      
+      <!-- Hero Informativo -->
+      <div class="card grade-hero-card" style="margin-bottom: 1.5rem; border-left: 4px solid #10b981;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div style="flex: 1; min-width: 300px;">
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem;">
+              <span class="badge-tag" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 6px;">FECHAMENTO QUANTITATIVO TURBO</span>
+              <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Engenharia Reversa da Planilha de 3 Bichos + Otimização Quântica</span>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 900; color: #fff; margin-bottom: 0.4rem; letter-spacing: -0.02em;">
+              ⚡ Fechador Duque Turbo (3 Bichos & Blindagem Pro)
+            </h2>
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+              Gere combinações cartesianas otimizadas com garantia matemática, cobertura financeira contra perdas (<em>Hedge</em>) e filtro de dezenas quentes. Ganhe de R$ 300,00 até R$ 1.085,50 por extração!
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn-sync" onclick="carregarSugestaoIADuque()" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;">
+              🤖 Carregar Sugestão da IA
+            </button>
+            <button class="btn-quick-fill" onclick="limparSelecaoBichosDuque()" style="color: var(--text-muted);">
+              🔄 Limpar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuração da Aposta: Seleção de Bichos e Modos -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+        
+        <!-- Card 1: Bichos Selecionados -->
+        <div class="card" style="margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
+            <div>
+              <strong style="color: #fff; font-size: 0.95rem;">🐾 Bichos Selecionados</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Escolha 2 ou 3 bichos para o cruzamento</div>
+            </div>
+            <span id="badge-qtd-bichos-duque" class="badge-tag" style="background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 700;">
+              0 de 3 selecionados
+            </span>
+          </div>
+
+          <!-- Cards dos 3 Bichos Ativos -->
+          <div id="container-bichos-selecionados-duque" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem; border: 1px dashed var(--border); border-radius: 8px;">
+              Clique em <strong>"🤖 Carregar Sugestão da IA"</strong> acima ou selecione até 3 bichos na cartela abaixo.
+            </div>
+          </div>
+
+          <!-- Seletor Rápido dos 25 Bichos -->
+          <details style="background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem;">
+            <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 700; color: var(--accent); user-select: none;">
+              🎯 Abrir Cartela dos 25 Bichos (Clique para Selecionar)
+            </summary>
+            <div id="grid-seletor-25-bichos-duque" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 0.4rem; margin-top: 0.75rem;">
+              <!-- Preenchido via JS -->
+            </div>
+          </details>
+        </div>
+
+        <!-- Card 2: Modo de Fechamento & Investimento -->
+        <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
+              <div>
+                <strong style="color: #fff; font-size: 0.95rem;">⚙️ Estratégia de Fechamento</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Equilíbrio entre custo, cobertura e ROI</div>
+              </div>
+            </div>
+
+            <!-- Modos de Fechamento -->
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <label class="modo-radio-card active" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); cursor: pointer;">
+                <input type="radio" name="modo_fechamento_duque" value="blindado_pro" checked onchange="atualizarModoDuque(this)" style="margin-top: 0.25rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong style="color: #10b981; font-size: 0.9rem;">🛡️ Combo Blindado Pro (Recomendado)</strong>
+                    <span class="badge-tag" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.68rem; padding: 0.15rem 0.4rem;">+SEGURO & ALAVANCAGEM</span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    12 Duques de Dezena + 3 Duques de Grupo + 1 Terno de Grupo. Custo R$ 16,00. Retorno de R$ 18,50 (amortiza o custo) até R$ 1.085,50 no Super Bingo!
+                  </div>
+                </div>
+              </label>
+
+              <label class="modo-radio-card" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.25); cursor: pointer;">
+                <input type="radio" name="modo_fechamento_duque" value="smart_12" onchange="atualizarModoDuque(this)" style="margin-top: 0.25rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong style="color: var(--accent); font-size: 0.9rem;">🎯 Smart-12 (Baixo Custo / ROI +2.400%)</strong>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    Foco nas 2 melhores dezenas de cada bicho (12 duques). Custo: R$ 12,00. Break-even cai para 4,0%! Prêmio: R$ 300,00 a R$ 900,00.
+                  </div>
+                </div>
+              </label>
+
+              <label class="modo-radio-card" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.25); cursor: pointer;">
+                <input type="radio" name="modo_fechamento_duque" value="smart_27" onchange="atualizarModoDuque(this)" style="margin-top: 0.25rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong style="color: #fbbf24; font-size: 0.9rem;">⚡ Smart-27 (Corta 1 Dezena Fria)</strong>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    3 dezenas por bicho (27 duques). Economia de 44% no custo da aposta (R$ 27,00). Prêmio: R$ 300,00 a R$ 900,00.
+                  </div>
+                </div>
+              </label>
+
+              <label class="modo-radio-card" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.25); cursor: pointer;">
+                <input type="radio" name="modo_fechamento_duque" value="full_48" onchange="atualizarModoDuque(this)" style="margin-top: 0.25rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <strong style="color: #94a3b8; font-size: 0.9rem;">🔒 Full-48 (100% Cartesiano do Vídeo)</strong>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    Todas as 4 dezenas de cada bicho (48 duques). Custo: R$ 48,00. Cobertura cartesiana integral caso 2 bichos saiam.
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Valor por Duque -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
+              <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Valor por Duque (R$):</span>
+              <input type="number" id="input-valor-duque" value="1.00" min="0.25" step="0.25" style="width: 100px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); color: #fff; padding: 0.4rem 0.6rem; border-radius: 6px; text-align: right; font-weight: 700;">
+            </div>
+          </div>
+
+          <!-- Botão Gerador Principal -->
+          <button class="btn-login" onclick="executarGerarDuqueTurbo()" style="width: 100%; margin-top: 0.5rem; background: linear-gradient(135deg, #10b981, #059669); font-size: 1.05rem;">
+            ⚡ Gerar Fechamento Turbo
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Resumo Financeiro & Ações de Cópia / Auditoria -->
+      <div id="container-resultado-duque" class="card" style="display: none; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.85rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.3rem;">📋</span>
+              <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff; margin: 0;">Jogos Prontos para Registrar</h3>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Bilhete formatado pronto para copiar ou auditar contra a extração apurada.
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-sync" onclick="copiarBilheteDuqueTurbo()" style="background: linear-gradient(135deg, var(--accent), #0284c7); color: #fff;">
+              📋 Copiar Bilhete Formatado
+            </button>
+            <button class="btn-sync" onclick="conferirDuqueComUltimoSorteio()" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;">
+              🎯 Conferir com Último Sorteio (BINGO!)
+            </button>
+          </div>
+        </div>
+
+        <!-- Scorecards Financeiros -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="score-box">
+            <span>Investimento Total</span>
+            <strong id="duque-res-custo" style="color: #fff;">R$ 0,00</strong>
+          </div>
+          <div class="score-box">
+            <span>Total de Duques</span>
+            <strong id="duque-res-total-jogos" style="color: var(--accent);">0 duques</strong>
+          </div>
+          <div class="score-box">
+            <span>Prêmio Alvo Mínimo</span>
+            <strong id="duque-res-premio-min" style="color: #10b981;">R$ 0,00</strong>
+          </div>
+          <div class="score-box">
+            <span>Super Bingo (3 Bichos)</span>
+            <strong id="duque-res-premio-max" style="color: #fbbf24;">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <!-- Banner de Auditoria BINGO (quando conferido) -->
+        <div id="duque-banner-auditoria" style="display: none; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem;">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- Grade Visual dos Duques Gerados -->
+        <div style="margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+            Cartões de Duques de Dezenas Gerados:
+          </div>
+          <div id="grid-duques-gerados" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.6rem;">
+            <!-- Preenchido via JS -->
+          </div>
+        </div>
+
+        <!-- Painel de Coberturas (Hedge) -->
+        <div id="painel-hedge-duque" style="display: none; margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #10b981; margin-bottom: 0.5rem; text-transform: uppercase;">
+            🛡️ Cobertura Financeira Ativa (Hedge):
+          </div>
+          <div id="lista-hedge-duque" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <!-- Preenchido via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Radar de Co-Atraso (Modo Sniper) -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.85rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">🎯</span>
+              <strong style="color: #fff; font-size: 1.05rem;">Radar de Co-Atraso & Modo Sniper (Pares nos 5 Prêmios)</strong>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Pares de alta afinidade histórica que estão com atraso crítico de saídas consecutivas.
+            </div>
+          </div>
+          <button class="btn-quick-fill" onclick="carregarRadarAtrasoDuque()">
+            🔄 Atualizar Radar
+          </button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Par de Animais</th>
+                <th>Frequência Histórica (12m)</th>
+                <th>Ciclo Médio</th>
+                <th>Atraso Atual</th>
+                <th>Status Tático</th>
+                <th>Ação Rápida</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-radar-atraso-body">
+              <tr><td colspan="6" style="text-align: center; padding: 1.5rem;">Carregando radar de co-atraso...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
 
     <div id="tab-regras" class="tab-content">
       

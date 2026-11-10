@@ -20,6 +20,12 @@ from sync_engine import sync_latest_results
 from ai_engine import generate_ai_predictions, get_puxadas_for_bicho
 from auto_pilot import auto_pilot
 from grade3x3_engine import gerar_top_k_grade3x3, obter_dados_contexto, build_grade_3x3, listar_sorteios_recentes
+from duque_engine import (
+    obter_sugestao_ia_duque,
+    gerar_fechamento_duque,
+    conferir_fechamento_duque,
+    obter_radar_co_atraso
+)
 
 app = FastAPI(title="DEU NO POSTE TURBO AI", version="2.0")
 
@@ -350,6 +356,18 @@ class Grade3x3FilaRequest(BaseModel):
     id_sorteio_gatilho: Optional[int] = None
     nome_estrategia: Optional[str] = "Grade 3x3 Turbo (Top-K)"
 
+class DuqueGerarRequest(BaseModel):
+    grupos: List[int]
+    modo: Optional[str] = "blindado_pro"
+    valor_por_duque: Optional[float] = 1.0
+
+class DuqueConferirRequest(BaseModel):
+    duques: List[str]
+    grupos_apostados: List[int]
+    modo: Optional[str] = "blindado_pro"
+    valor_por_duque: Optional[float] = 1.0
+    id_sorteio: Optional[int] = None
+
 @app.get("/api/grade-3x3/sorteios-disponiveis")
 def api_grade3x3_sorteios():
     return listar_sorteios_recentes(limite=25)
@@ -391,6 +409,35 @@ def api_grade3x3_enviar_fila(req: Grade3x3FilaRequest):
         apostas=req.apostas,
         custo_por_rodada=req.custo_por_rodada,
         id_sorteio_gatilho=req.id_sorteio_gatilho
+    )
+
+# ============================================================================
+# ENDPOINTS DUQUE TURBO (FECHAMENTO 3 BICHOS & BLINDAGEM PRO)
+# ============================================================================
+@app.get("/api/duque-turbo/sugestao-ia")
+def api_duque_sugestao_ia():
+    return obter_sugestao_ia_duque()
+
+@app.get("/api/duque-turbo/radar-atraso")
+def api_duque_radar_atraso(limite: int = 10):
+    return {"status": "success", "radar": obter_radar_co_atraso(limite)}
+
+@app.post("/api/duque-turbo/gerar")
+def api_duque_gerar(req: DuqueGerarRequest):
+    return gerar_fechamento_duque(
+        grupos=req.grupos,
+        modo=req.modo or "blindado_pro",
+        valor_por_duque=req.valor_por_duque or 1.0
+    )
+
+@app.post("/api/duque-turbo/conferir")
+def api_duque_conferir(req: DuqueConferirRequest):
+    return conferir_fechamento_duque(
+        duques=req.duques,
+        grupos_apostados=req.grupos_apostados,
+        id_sorteio=req.id_sorteio,
+        modo=req.modo or "blindado_pro",
+        valor_por_duque=req.valor_por_duque or 1.0
     )
 
 # Montar arquivos estáticos do frontend

@@ -368,6 +368,11 @@ function switchTab(tabId) {
     carregarStatusAutoPilot();
     carregarMonitoramentoAssertividade();
   }
+  if (tabId === "tab-duqueturbo") {
+    if (!duqueTurboState.inicializado) {
+      inicializarDuqueTurbo();
+    }
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -2446,3 +2451,478 @@ function enviarCartaoParaConferidor(numero) {
     apostaInput.focus();
   }
 }
+
+
+/* ============================================================================
+   MÓDULO DUQUE TURBO (FECHAMENTO 3 BICHOS & BLINDAGEM PRO)
+   Engenharia Reversa da Planilha do YouTube + Otimização Quântica Turbo AI
+   ============================================================================ */
+
+const duqueTurboState = {
+  inicializado: false,
+  bichosSelecionados: [], // array com até 3 números de grupos [g1, g2, g3]
+  bichosInfoMap: {},      // cache de informações dos bichos
+  ultimoFechamento: null,
+  modoAtivo: "blindado_pro"
+};
+
+async function inicializarDuqueTurbo() {
+  duqueTurboState.inicializado = true;
+  await carregarSugestaoIADuque();
+  carregarRadarAtrasoDuque();
+}
+
+async function carregarSugestaoIADuque() {
+  try {
+    const res = await fetch("/api/duque-turbo/sugestao-ia");
+    const data = await res.json();
+    if (data.status === "success") {
+      duqueTurboState.bichosSelecionados = [...data.grupos_sugeridos_ids];
+      // Guardar info dos bichos
+      data.bichos_recomendados.forEach(b => {
+        duqueTurboState.bichosInfoMap[b.grupo] = b;
+      });
+      renderizarBichosSelecionadosDuque();
+      renderizarCartela25BichosDuque();
+      executarGerarDuqueTurbo();
+      showToast("🤖 Sugestão da IA carregada com sucesso!", "success");
+    } else {
+      showToast("Não foi possível carregar sugestão automática da IA.", "error");
+    }
+  } catch (err) {
+    console.error("Erro ao carregar sugestão IA Duque:", err);
+    showToast("Erro ao conectar com servidor.", "error");
+  }
+}
+
+function renderizarCartela25BichosDuque() {
+  const container = document.getElementById("grid-seletor-25-bichos-duque");
+  if (!container) return;
+
+  // Se bichos globais do app já existirem
+  const bichosList = window.bichosGlobais || [];
+  if (bichosList.length === 0) {
+    // Fallback: carregar lista padrão
+    let html = "";
+    for (let g = 1; g <= 25; g++) {
+      const isSel = duqueTurboState.bichosSelecionados.includes(g);
+      html += `
+        <button type="button" onclick="toggleBichoDuque(${g})" 
+          class="btn-bicho-cartela ${isSel ? 'bicho-selecionado' : ''}"
+          style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid ${isSel ? '#10b981' : 'var(--border)'}; background: ${isSel ? 'rgba(16, 185, 129, 0.25)' : 'rgba(0,0,0,0.3)'}; cursor: pointer; transition: all 0.2s ease;">
+          <span style="font-size: 0.75rem; font-weight: 800; color: ${isSel ? '#10b981' : 'var(--accent)'};">G-${String(g).padStart(2, '0')}</span>
+          <span style="font-size: 0.68rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 58px;">Bicho ${g}</span>
+        </button>
+      `;
+    }
+    container.innerHTML = html;
+    return;
+  }
+
+  let html = "";
+  bichosList.forEach(b => {
+    const gInt = parseInt(b.grupo, 10);
+    const isSel = duqueTurboState.bichosSelecionados.includes(gInt);
+    html += `
+      <button type="button" onclick="toggleBichoDuque(${gInt})" 
+        class="btn-bicho-cartela ${isSel ? 'bicho-selecionado' : ''}"
+        style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid ${isSel ? '#10b981' : 'var(--border)'}; background: ${isSel ? 'rgba(16, 185, 129, 0.25)' : 'rgba(0,0,0,0.3)'}; cursor: pointer; transition: all 0.2s ease;">
+        <span style="font-size: 1.1rem; line-height: 1;">${b.icone || '🐾'}</span>
+        <span style="font-size: 0.72rem; font-weight: 800; color: ${isSel ? '#10b981' : 'var(--accent)'}; margin-top: 0.15rem;">G-${b.grupo}</span>
+        <span style="font-size: 0.68rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 58px;">${b.nome}</span>
+      </button>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function toggleBichoDuque(grupo) {
+  const idx = duqueTurboState.bichosSelecionados.indexOf(grupo);
+  if (idx !== -1) {
+    duqueTurboState.bichosSelecionados.splice(idx, 1);
+  } else {
+    if (duqueTurboState.bichosSelecionados.length >= 3) {
+      showToast("Você já selecionou o limite máximo de 3 bichos!", "warning");
+      return;
+    }
+    duqueTurboState.bichosSelecionados.push(grupo);
+  }
+  renderizarBichosSelecionadosDuque();
+  renderizarCartela25BichosDuque();
+}
+
+function limparSelecaoBichosDuque() {
+  duqueTurboState.bichosSelecionados = [];
+  renderizarBichosSelecionadosDuque();
+  renderizarCartela25BichosDuque();
+  const resContainer = document.getElementById("container-resultado-duque");
+  if (resContainer) resContainer.style.display = "none";
+  showToast("Seleção de bichos limpa.", "info");
+}
+
+function renderizarBichosSelecionadosDuque() {
+  const container = document.getElementById("container-bichos-selecionados-duque");
+  const badgeQtd = document.getElementById("badge-qtd-bichos-duque");
+  if (!container) return;
+
+  const total = duqueTurboState.bichosSelecionados.length;
+  if (badgeQtd) {
+    badgeQtd.textContent = `${total} de 3 selecionados`;
+    badgeQtd.style.color = total >= 2 ? "#10b981" : "var(--accent)";
+  }
+
+  if (total === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem; border: 1px dashed var(--border); border-radius: 8px;">
+        Clique em <strong>"🤖 Carregar Sugestão da IA"</strong> acima ou selecione até 3 bichos na cartela abaixo.
+      </div>
+    `;
+    return;
+  }
+
+  const bichosList = window.bichosGlobais || [];
+  let html = "";
+  duqueTurboState.bichosSelecionados.forEach((g, idx) => {
+    const bichoObj = bichosList.find(b => parseInt(b.grupo, 10) === g) || duqueTurboState.bichosInfoMap[g] || {
+      grupo: String(g).padStart(2, '0'),
+      nome: `Grupo ${g}`,
+      icone: "🐾",
+      dezenas: []
+    };
+
+    const cores = ["#fbbf24", "#10b981", "#38bdf8"];
+    const cor = cores[idx % cores.length];
+
+    html += `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid ${cor}40; background: ${cor}10;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.4rem;">${bichoObj.icone || '🐾'}</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <strong style="color: #fff; font-size: 0.95rem;">${bichoObj.nome}</strong>
+              <span class="badge-tag" style="background: ${cor}25; color: ${cor}; font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 4px;">
+                GRUPO ${String(g).padStart(2, '0')}
+              </span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Dezenas: <strong style="color: ${cor};">${(bichoObj.dezenas || []).join(", ") || "Auto-filtradas"}</strong>
+            </div>
+          </div>
+        </div>
+        <button type="button" onclick="toggleBichoDuque(${g})" style="background: transparent; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 0.3rem;" title="Remover bicho">
+          ✕
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function atualizarModoDuque(radio) {
+  duqueTurboState.modoAtivo = radio.value;
+  document.querySelectorAll(".modo-radio-card").forEach(el => el.classList.remove("active"));
+  const card = radio.closest(".modo-radio-card");
+  if (card) card.classList.add("active");
+
+  if (duqueTurboState.bichosSelecionados.length >= 2 && duqueTurboState.ultimoFechamento) {
+    executarGerarDuqueTurbo();
+  }
+}
+
+async function executarGerarDuqueTurbo() {
+  if (duqueTurboState.bichosSelecionados.length < 2) {
+    showToast("Selecione pelo menos 2 bichos para gerar o fechamento!", "warning");
+    return;
+  }
+
+  const modo = document.querySelector("input[name='modo_fechamento_duque']:checked")?.value || "blindado_pro";
+  const valorInput = document.getElementById("input-valor-duque");
+  const valor = parseFloat(valorInput?.value || 1.0) || 1.0;
+
+  try {
+    const res = await fetch("/api/duque-turbo/gerar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grupos: duqueTurboState.bichosSelecionados,
+        modo: modo,
+        valor_por_duque: valor
+      })
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      duqueTurboState.ultimoFechamento = data;
+      renderizarResultadoDuqueTurbo(data);
+      showToast(`⚡ Fechamento de ${data.total_duques} duques gerado com sucesso!`, "success");
+    } else {
+      showToast(data.mensagem || "Erro ao gerar fechamento.", "error");
+    }
+  } catch (err) {
+    console.error("Erro ao gerar fechamento:", err);
+    showToast("Erro de comunicação com o servidor.", "error");
+  }
+}
+
+function renderizarResultadoDuqueTurbo(data) {
+  const container = document.getElementById("container-resultado-duque");
+  if (!container) return;
+  container.style.display = "block";
+
+  // Scorecards
+  document.getElementById("duque-res-custo").textContent = `R$ ${data.custo_total.toFixed(2)}`;
+  document.getElementById("duque-res-total-jogos").textContent = `${data.total_duques} duques`;
+  document.getElementById("duque-res-premio-min").textContent = `R$ ${data.premio_min_acerto.toFixed(2)}`;
+  document.getElementById("duque-res-premio-max").textContent = `R$ ${data.premio_max_acerto.toFixed(2)}`;
+
+  // Ocultar banner de auditoria anterior
+  const bannerAudit = document.getElementById("duque-banner-auditoria");
+  if (bannerAudit) bannerAudit.style.display = "none";
+
+  // Renderizar Grid de Duques
+  const gridDuques = document.getElementById("grid-duques-gerados");
+  if (gridDuques) {
+    let html = "";
+    data.duques_detalhados.forEach((d, idx) => {
+      html += `
+        <div id="card-duque-${idx}" class="card-duque-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.65rem 0.5rem; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 8px; text-align: center; transition: all 0.2s ease;">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">${d.origem}</span>
+          <strong style="font-size: 1.15rem; color: #fff; margin: 0.25rem 0; letter-spacing: 1px;">${d.label}</strong>
+          <span class="badge-status-duque" style="font-size: 0.65rem; color: var(--accent); font-weight: 700;">R$ ${data.valor_por_duque.toFixed(2)}</span>
+        </div>
+      `;
+    });
+    gridDuques.innerHTML = html;
+  }
+
+  // Painel de Hedge
+  const painelHedge = document.getElementById("painel-hedge-duque");
+  const listaHedge = document.getElementById("lista-hedge-duque");
+  if (data.hedge_duque_grupo && data.hedge_duque_grupo.length > 0) {
+    painelHedge.style.display = "block";
+    let hedgeHtml = "";
+    data.hedge_duque_grupo.forEach(h => {
+      hedgeHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; font-size: 0.8rem;">
+          <span style="color: #fff;">Duque de Grupo: <strong>${h.label}</strong></span>
+          <span style="color: #10b981; font-weight: 700;">Aposta R$ 1,00 $\\rightarrow$ Paga R$ ${h.premio_potencial.toFixed(2)}</span>
+        </div>
+      `;
+    });
+    if (data.hedge_terno_grupo) {
+      hedgeHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; font-size: 0.8rem; margin-top: 0.3rem;">
+          <span style="color: #fff;">🚀 Super Bônus Terno de Grupo: <strong>${data.hedge_terno_grupo.label}</strong></span>
+          <span style="color: #fbbf24; font-weight: 800;">Aposta R$ 1,00 $\\rightarrow$ Paga R$ ${data.hedge_terno_grupo.premio_potencial.toFixed(2)}</span>
+        </div>
+      `;
+    }
+    listaHedge.innerHTML = hedgeHtml;
+  } else {
+    if (painelHedge) painelHedge.style.display = "none";
+  }
+
+  container.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function copiarBilheteDuqueTurbo() {
+  if (!duqueTurboState.ultimoFechamento || !duqueTurboState.ultimoFechamento.texto_bilhete) {
+    showToast("Gere o fechamento antes de copiar o bilhete!", "warning");
+    return;
+  }
+
+  const texto = duqueTurboState.ultimoFechamento.texto_bilhete;
+  navigator.clipboard.writeText(texto).then(() => {
+    showToast("📋 Bilhete copiado para a área de transferência! Pronto para colar no WhatsApp ou banca.", "success");
+  }).catch(err => {
+    console.error("Erro ao copiar:", err);
+    // Fallback com textarea
+    const ta = document.createElement("textarea");
+    ta.value = texto;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("📋 Bilhete copiado com sucesso!", "success");
+  });
+}
+
+async function conferirDuqueComUltimoSorteio() {
+  if (!duqueTurboState.ultimoFechamento) {
+    showToast("Gere o fechamento primeiro antes de auditar!", "warning");
+    return;
+  }
+
+  const payload = {
+    duques: duqueTurboState.ultimoFechamento.duques,
+    grupos_apostados: duqueTurboState.bichosSelecionados,
+    modo: duqueTurboState.ultimoFechamento.modo,
+    valor_por_duque: duqueTurboState.ultimoFechamento.valor_por_duque
+  };
+
+  try {
+    const res = await fetch("/api/duque-turbo/conferir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      aplicarAuditoriaDuqueVisual(data);
+    } else {
+      showToast(data.mensagem || "Erro na apuração do sorteio.", "error");
+    }
+  } catch (err) {
+    console.error("Erro ao conferir duques:", err);
+    showToast("Erro ao auditar bilhetes.", "error");
+  }
+}
+
+function aplicarAuditoriaDuqueVisual(conf) {
+  const banner = document.getElementById("duque-banner-auditoria");
+  if (!banner) return;
+
+  banner.style.display = "block";
+  const sorteio = conf.sorteio_apurado;
+
+  // Premios sorteados formatados
+  const premiosResumo = sorteio.premios.map(p => `${p.premio}: ${p.dezena} (${p.bicho})`).join(" | ");
+
+  if (conf.teve_bingo) {
+    banner.style.background = "linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35))";
+    banner.style.border = "1px solid #10b981";
+    banner.style.boxShadow = "0 0 25px rgba(16, 185, 129, 0.4)";
+    banner.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.6rem;">🎉</span>
+            <strong style="font-size: 1.3rem; color: #10b981;">BINGO! DUQUE PREMIADO NO POSTE!</strong>
+          </div>
+          <div style="font-size: 0.85rem; color: #fff; margin-top: 0.3rem;">
+            Extração auditada: <strong>${sorteio.extracao} (${sorteio.data} - ${sorteio.horario})</strong>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Prêmios Oficiais: ${premiosResumo}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Retorno Líquido Apurado:</div>
+          <div style="font-size: 1.6rem; font-weight: 900; color: #10b981;">+R$ ${conf.lucro_liquido.toFixed(2)}</div>
+          <span class="badge-tag" style="background: rgba(16, 185, 129, 0.3); color: #fff; font-weight: 800;">ROI: +${conf.roi_pct}%</span>
+        </div>
+      </div>
+    `;
+    showToast(`🎉 BINGO! Você acertou duque premiado! Lucro: +R$ ${conf.lucro_liquido.toFixed(2)}`, "success");
+  } else {
+    banner.style.background = "rgba(239, 68, 68, 0.12)";
+    banner.style.border = "1px solid rgba(239, 68, 68, 0.3)";
+    banner.style.boxShadow = "none";
+    banner.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.4rem;">❌</span>
+            <strong style="font-size: 1.05rem; color: #f87171;">Nenhum duque bateu nesta extração</strong>
+          </div>
+          <div style="font-size: 0.82rem; color: #fff; margin-top: 0.25rem;">
+            Extração auditada: <strong>${sorteio.extracao} (${sorteio.data} - ${sorteio.horario})</strong>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Prêmios Oficiais: ${premiosResumo}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Custo da Rodada:</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #f87171;">-R$ ${conf.custo_total.toFixed(2)}</div>
+        </div>
+      </div>
+    `;
+    showToast("Extração auditada. Não houve acerto nesta rodada.", "info");
+  }
+
+  // Marcar cada cartão com selo BINGO ou status
+  conf.duques_auditados.forEach((item, idx) => {
+    const cardEl = document.getElementById(`card-duque-${idx}`);
+    if (cardEl) {
+      if (item.bingo) {
+        cardEl.style.border = "2px solid #10b981";
+        cardEl.style.background = "rgba(16, 185, 129, 0.3)";
+        cardEl.style.boxShadow = "0 0 15px rgba(16, 185, 129, 0.5)";
+        cardEl.querySelector(".badge-status-duque").innerHTML = `<strong style="color: #10b981; font-size: 0.78rem;">🎯 BINGO! (R$ ${item.premio_ganho.toFixed(2)})</strong>`;
+      } else if (item.d1_sorteada || item.d2_sorteada) {
+        cardEl.style.border = "1px solid rgba(56, 189, 248, 0.4)";
+        cardEl.style.background = "rgba(56, 189, 248, 0.08)";
+        const acertada = item.d1_sorteada ? item.d1 : item.d2;
+        cardEl.querySelector(".badge-status-duque").innerHTML = `<span style="color: var(--accent); font-size: 0.65rem;">Saiu só ${acertada}</span>`;
+      } else {
+        cardEl.style.opacity = "0.45";
+      }
+    }
+  });
+
+  banner.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function carregarRadarAtrasoDuque() {
+  const tbody = document.getElementById("tabela-radar-atraso-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1.5rem;">Carregando radar de co-atraso...</td></tr>`;
+
+  try {
+    const res = await fetch("/api/duque-turbo/radar-atraso?limite=10");
+    const data = await res.json();
+    if (data.status === "success" && data.radar) {
+      let html = "";
+      data.radar.forEach(p => {
+        const isSniper = p.status_sniper.includes("SNIPER");
+        const corTag = isSniper ? "#ef4444" : (p.status_sniper.includes("QUENTE") ? "#fbbf24" : "var(--accent)");
+
+        html += `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.1rem;">${p.icone_a} ${p.icone_b}</span>
+                <strong style="color: #fff;">${p.bicho_a} e ${p.bicho_b}</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">(G${String(p.grupo_a).padStart(2, '0')} e G${String(p.grupo_b).padStart(2, '0')})</span>
+              </div>
+            </td>
+            <td><strong>${p.frequencia_total} saídas</strong> (${p.frequencia_pct}%)</td>
+            <td>A cada <strong>${p.ciclo_medio}</strong> sorteios</td>
+            <td>
+              <strong style="color: ${p.atraso_atual >= 35 ? '#ef4444' : (p.atraso_atual >= 25 ? '#fbbf24' : '#fff')}; font-size: 1.05rem;">
+                ${p.atraso_atual} sorteios
+              </strong>
+            </td>
+            <td>
+              <span class="badge-tag" style="background: ${corTag}20; color: ${corTag}; border: 1px solid ${corTag}; font-weight: 800; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px;">
+                ${p.status_sniper}
+              </span>
+            </td>
+            <td>
+              <button class="btn-quick-fill" onclick="carregarParSniperDuque(${p.grupo_a}, ${p.grupo_b})" style="color: #10b981; border-color: rgba(16, 185, 129, 0.4); padding: 0.3rem 0.6rem; font-weight: 700;">
+                ⚡ Jogar Par
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+  } catch (err) {
+    console.error("Erro ao carregar radar atraso:", err);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 1.5rem;">Erro ao carregar radar.</td></tr>`;
+  }
+}
+
+function carregarParSniperDuque(gA, gB) {
+  duqueTurboState.bichosSelecionados = [gA, gB];
+  renderizarBichosSelecionadosDuque();
+  renderizarCartela25BichosDuque();
+  executarGerarDuqueTurbo();
+  const formSection = document.getElementById("container-bichos-selecionados-duque");
+  if (formSection) formSection.scrollIntoView({ behavior: "smooth" });
+  showToast(`🎯 Par Sniper carregado! Grupos ${String(gA).padStart(2, '0')} e ${String(gB).padStart(2, '0')}`, "success");
+}
+

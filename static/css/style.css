@@ -1900,3 +1900,16 @@ tbody tr:hover {
   color: var(--accent);
   font-weight: 900;
 }
+
+/* ==========================================================================
+   ESTILOS DUQUE TURBO (FECHAMENTO 3 BICHOS & BLINDAGEM PRO)
+   ========================================================================== */
+.card-duque-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+}
+
+.bicho-selecionado {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
